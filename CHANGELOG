@@ -1,0 +1,12 @@
+## Change Log
+
+### master (unreleased)
+
+* Handle uppercase keywords properly
+* Fix limit handling in query_old_data rule
+* Remove dependency to dateparser because we know the time format in advance
+
+
+### v0.6.0 (2016/02/17)
+
+* Initial upload

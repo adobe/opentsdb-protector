@@ -1,0 +1,21 @@
+---
+host: localhost
+port: 8888
+backend_host: localhost
+backend_port: 4343
+pidfile: /tmp/protector.pid
+logfile: /tmp/protector.log
+verbose: 2
+rules:
+  - query_no_tags_filters
+  - query_no_aggregator
+  - too_many_datapoints
+  - query_old_data
+# You can blacklist series names
+# Queries matching these patterns will be blocked
+blacklist:
+  - grafana\.
+  - ^php_serverstart$
+  - ^c_test_events$
+  - ^application_release$
+  - .*java.*boot.*version.*
