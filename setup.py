@@ -22,7 +22,8 @@ requires = [
     "python-dateutil",
     "PyYAML",
     "result==0.3.0",
-    "wheel"
+    "wheel",
+    "pickledb==0.9.2"
 ]
 
 test_requires = [
