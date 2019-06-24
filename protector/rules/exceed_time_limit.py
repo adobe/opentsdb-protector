@@ -5,16 +5,16 @@ from protector.rules.rule import Rule
 class RuleChecker(Rule):
     def __init__(self):
         # Todo: Make this configurable from config file
-        self.max_datapoints = 10000
+        self.max_duration = 20
 
     @staticmethod
     def description():
-        return "Prevent too many data points per query"
+        return "Prevent lengthy queries"
 
     @staticmethod
     def reason():
         return ["Such queries can bring down the time series database",
-                "or overload the client with too much data transferred over the wire."]
+                "usually performing long and inefficient scans or aggregations"]
 
     def check(self, query):
         """
@@ -23,8 +23,7 @@ class RuleChecker(Rule):
         stats = query.get_stats()
         if stats:
 
-            dps = int(stats.get('emittedDPs', 0))
-            if self.max_datapoints < dps:
-
-                return Err("{} data points from that query, which is above the threshold! Limit the number of data points({}) or decrease the interval".format(dps, self.max_datapoints))
+            duration = int(stats.get('duration', 0))
+            if self.max_duration <= duration:
+                return Err("Query duration exceeded: {}s Limit: {}s".format(duration, self.max_duration))
         return Ok(True)

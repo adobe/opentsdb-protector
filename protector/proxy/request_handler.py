@@ -1,6 +1,7 @@
 import json
 import httplib
 import gzip
+import time
 import zlib
 import logging
 import traceback
@@ -9,8 +10,8 @@ from StringIO import StringIO
 
 from protector.proxy.http_request import HTTPRequest
 from protector.query.query import OpenTSDBQuery, OpenTSDBResponse
+import socket
 import pprint
-
 
 class ProxyRequestHandler(BaseHTTPRequestHandler):
 
@@ -32,15 +33,42 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.rfile = None
         self.wfile = None
         self.close_connection = 0
+        #self.timeout = 12
 
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
     def log_error(self, log_format, *args):
 
         # Suppress "Request timed out: timeout('timed out',)"
-        # if isinstance(args[0], socket.timeout):
-        #    return
+        #if isinstance(args[0], socket.timeout):
+
+        #logging.error("{}".format(traceback.format_exc()))
+        #logging.error(pprint.pprint(args[0]))
+
         self.log_message(log_format, *args)
+
+    def log_message(self, format, *args):
+
+        """Log an arbitrary message.
+
+        This is used by all other logging functions.  Override
+        it if you have specific logging wishes.
+
+        The first argument, FORMAT, is a format string for the
+        message to be logged.  If the format string contains
+        any % escapes requiring parameters, they should be
+        specified as subsequent arguments (it's just like
+        printf!).
+
+        The client ip address and current date/time are prefixed to every
+        message.
+
+        """
+
+        logging.info("%s - - [%s] %s\n" %
+                         (self.client_address[0],
+                          self.log_date_time_string(),
+                          format%args))
 
     def do_GET(self):
 
@@ -60,6 +88,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         if self.path == "/api/query":
 
             self.tsdb_query = OpenTSDBQuery(post_data)
+            self.headers['X-Protector'] = self.tsdb_query.get_id()
 
             # Check the payload against the Protector rule set
             result = self.protector.check(self.tsdb_query)
@@ -68,7 +97,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 self.send_error(httplib.BAD_REQUEST, result.value)
                 return
 
-            
             post_data = self.tsdb_query.toJson()
 
             self.headers['Content-Length'] = str(len(post_data))
@@ -84,12 +112,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         message = message.strip()
         self.log_error("code %d, message: %s", code, message)
         self.send_response(code)
-        #self.send_header("Content-Type", "text/plain")
+
         self.send_header("Content-Type", "application/json")
         self.send_header('Connection', 'close')
         self.end_headers()
         if message:
-            #self.wfile.write(message.encode())
             # Grafana style
             j = {'message': message, 'error': message}
             self.wfile.write(json.dumps(j))
@@ -101,23 +128,35 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         backend_url = "{}://{}{}".format(scheme, netloc, path)
 
         try:
+            startTime = time.time()
+            logging.info("startTime: {}".format(startTime))
             response = self.http_request.request(backend_url, method=method, body=body, headers=dict(headers))
             if response:
-                self._return_response(response, method)
+                respTime = time.time()
+                logging.info("resptTime: {}".format(respTime))
+                duration = respTime - startTime
+                logging.info("duration: {} s".format(duration))
+
+                self._return_response(response, method, duration)
+        except socket.timeout, e:
+
+            self.protector.save_stats_timeout(self.tsdb_query, 20)
+            self.send_error(httplib.SERVICE_UNAVAILABLE, "Query timed out. Configured timeout: {}s".format(20))
+
         except Exception as e:
-            logging.error("{}".format(traceback.format_exc()))
-            err = "Invalid response from backend: '{}' Server might be busy".format(e)
+            #logging.error("{}".format(traceback.format_exc()))
+            err = "Invalid response from backend: '{}'".format(e)
             logging.debug(err)
             self.send_error(httplib.SERVICE_UNAVAILABLE, err)
 
-    def _process_response(self, payload, encoding):
+    def _process_response(self, payload, encoding, duration):
         """
         :type payload: JSON
         :type encoding: Content Encoding
         """
         try:
             resp = OpenTSDBResponse(self.decode_content_body(payload, encoding))
-            self.protector.save_stats(self.tsdb_query, resp)
+            self.protector.save_stats(self.tsdb_query, resp, duration)
         except Exception as e:
             err = "Skip: {}".format(e)
             logging.debug(err)
@@ -137,7 +176,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         return self.encode_content_body(json.dumps(b), encoding)
 
-    def _return_response(self, response, method):
+    def _return_response(self, response, method, duration):
         """
         :type response: HTTPResponse
         """
@@ -154,13 +193,15 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         if method == "POST":
             if response.status == httplib.OK:
                 # Process the payload
-                self._process_response(body, response.getheader('content-encoding'))
+                self._process_response(body, response.getheader('content-encoding'), duration)
             if response.status == httplib.BAD_REQUEST:
                 body = self._process_bad_request(body, response.getheader('content-encoding'))
 
         self.send_header('Content-Length', str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+        #self.wfile.close()
+
 
     do_HEAD = do_GET
     do_OPTIONS = do_GET
