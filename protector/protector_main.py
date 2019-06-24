@@ -55,11 +55,12 @@ class Protector(object):
             logging.info(error_msg)
             return Err(error_msg)
 
-    def save_stats(self, query, response):
+    def save_stats(self, query, response, duration):
 
         current_time = int(round(time.time()))
-        interval = int((current_time - query.get_start_timestamp()) / 60)
-        logging.info("[{}] start: {}, end: {}, interval: {} minutes".format(query.get_id(), int(query.get_start_timestamp()), current_time, interval))
+        end_time = query.get_end_timestamp()
+        interval = int((end_time - query.get_start_timestamp()) / 60)
+        logging.info("[{}] start: {}, end: {}, interval: {} minutes".format(query.get_id(), int(query.get_start_timestamp()), end_time, interval))
 
         stats = response.get_stats()
         key = "{}_{}".format(query.get_id(), interval)
@@ -81,8 +82,29 @@ class Protector(object):
             sum_dp += x['emittedDPs']
 
         self.db.dadd(key, ('emittedDPs', sum_dp))
+        self.db.dadd(key, ('duration', duration))
 
         logging.info("[{}] emittedDPs: {}".format(query.get_id(), sum_dp))
+        logging.info("[{}] duration: {}".format(query.get_id(), duration))
+
+        self.db.dump()
+
+        logging.info("[{}] stats saved".format(query.get_id()))
+
+    def save_stats_timeout(self, query, duration):
+
+        end_time = query.get_end_timestamp()
+        interval = int((end_time - query.get_start_timestamp()) / 60)
+        logging.info("[{}] start: {}, end: {}, interval: {} minutes".format(query.get_id(), int(query.get_start_timestamp()), end_time, interval))
+
+        key = "{}_{}".format(query.get_id(), interval)
+
+        if not self.db.exists(key):
+            self.db.dcreate(key)
+
+        self.db.dadd(key, ('duration', duration))
+
+        logging.info("[{}] duration: {}".format(query.get_id(), duration))
 
         self.db.dump()
 
@@ -90,9 +112,9 @@ class Protector(object):
 
     def load_stats(self, query):
 
-        current_time = int(round(time.time()))
+        end_time = query.get_end_timestamp()
 
-        interval = int((current_time - query.get_start_timestamp()) / 60)
+        interval = int((end_time - query.get_start_timestamp()) / 60)
         key = "{}_{}".format(query.get_id(), interval)
 
         if self.db.exists(key):

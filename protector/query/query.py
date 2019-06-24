@@ -76,6 +76,21 @@ class OpenTSDBQuery(object):
             else:
                 raise Exception("Start date parse error. Value: {}".format(str(start)))
 
+    def get_end_timestamp(self):
+
+        end = self.get_end()
+
+        if end:
+
+            if len(str(end)) > 12:
+                # Milliseconds -> seconds
+                return int(end) / 1000
+            else:
+                # Seconds
+                return int(end)
+        else:
+            return int(round(time.time()))
+
     def get_metric_names(self):
         qs = self.q.get("queries")
         qs_names = []

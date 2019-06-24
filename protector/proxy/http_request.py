@@ -2,8 +2,9 @@ from httplib import HTTPSConnection, HTTPConnection, IncompleteRead
 import urlparse
 import threading
 import socket
+import logging
 
-timeout = 10
+timeout = 20
 socket.setdefaulttimeout(timeout)
 
 
@@ -16,7 +17,7 @@ class HTTPRequest(object):
         self.tls = threading.local()
         self.tls.conns = {}
 
-    def request(self, url, body=None, headers=None, timeout=10, max_retries=2, method="GET"):
+    def request(self, url, body=None, headers=None, timeout=20, max_retries=1, method="GET"):
         if headers is None:
             headers = dict()
 
@@ -27,17 +28,23 @@ class HTTPRequest(object):
         if method == "GET":
             uri = parsed.path + "?" + parsed.query
 
-        for i in range(1, max_retries):
+        for i in range(max_retries):
             try:
                 conn = self.create_conn(parsed, origin, timeout)
                 conn.request(method, uri, body=body, headers=headers)
                 return conn.getresponse()
+            except socket.timeout, e:
+                logging.warning("HTTPRequest socket timeout: %s", str(e))
+                raise e
+            except socket.error, e:
+                logging.warning("HTTPRequest socket error: %s", str(e))
+                raise e
             except IncompleteRead as e:
                 return e.partial
             except Exception as e:
                 if origin in self.tls.conns:
                     del self.tls.conns[origin]
-                if i >= max_retries:
+                if (i + 1) >= max_retries:
                     raise e
 
     def create_conn(self, parsed, origin, timeout):
