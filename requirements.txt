@@ -19,3 +19,4 @@ umalqurra==0.2
 wheel==0.26.0
 wrapt==1.10.6
 pickledb==0.9.2
+prometheus_client==0.7.1

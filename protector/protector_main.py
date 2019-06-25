@@ -6,6 +6,7 @@ import pickledb
 
 from protector.guard.guard import Guard
 #from protector.sanitizer.sanitizer import Sanitizer
+from prometheus_client import Counter, Summary, Histogram, Gauge
 
 
 class Protector(object):
@@ -28,6 +29,19 @@ class Protector(object):
 
         self.db = pickledb.load('/tmp/test.db', False, True)
 
+        self.REQUESTS_COUNT = Counter('requests_total', 'Total number of requests')
+        self.REQUESTS_BLOCKED = Counter('requests_blocked', 'Total number of blocked requests')
+        self.REQUESTS_BLACKLISTED_MATCHED = Counter('requests_blacklisted_matched', 'Total number of blacklisted matched requests')
+
+        self.EXCEED_TIME_LIMIT_COUNT = Counter('exceed_time_limit_count', 'exceed_time_limit rule match count')
+        self.QUERY_NO_AGGREGATOR_COUNT = Counter('query_no_aggregator_count', 'query_no_aggregator rule match count')
+        self.QUERY_NO_TAGS_FILTERS_COUNT = Counter('query_no_tags_filters_count', 'query_no_tags_filters rule match count')
+        self.QUERY_OLD_DATA_COUNT = Counter('query_old_data_count', 'query_old_data rule match count')
+        self.TOO_MANY_DATAPOINTS_COUNT = Counter('too_many_datapoints_count', 'too_many_datapoints rule match count')
+        self.EXCEED_FREQUENCY_COUNT = Counter('exceed_frequency_count', 'exceed_frequency rule match count')
+
+        self.TSDB_REQUEST_LATENCY = Histogram('tsdb_request_latency_seconds', 'OpenTSDB Requests latency histogram')
+
         # Dump all query ids
         #logging.debug(pprint.pprint(self.db.getall()))
 
@@ -46,6 +60,7 @@ class Protector(object):
                 for qn in qs_names:
                     match = re.match(pattern, qn)
                     if match:
+                        self.REQUESTS_BLACKLISTED_MATCHED.inc()
                         return Err("Metric name: {} is blacklisted".format(qn))
 
             self.load_stats(query)
@@ -83,6 +98,7 @@ class Protector(object):
 
         self.db.dadd(key, ('emittedDPs', sum_dp))
         self.db.dadd(key, ('duration', duration))
+        self.db.dadd(key, ('timestamp', current_time))
 
         logging.info("[{}] emittedDPs: {}".format(query.get_id(), sum_dp))
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
@@ -93,6 +109,7 @@ class Protector(object):
 
     def save_stats_timeout(self, query, duration):
 
+        current_time = int(round(time.time()))
         end_time = query.get_end_timestamp()
         interval = int((end_time - query.get_start_timestamp()) / 60)
         logging.info("[{}] start: {}, end: {}, interval: {} minutes".format(query.get_id(), int(query.get_start_timestamp()), end_time, interval))
@@ -103,6 +120,7 @@ class Protector(object):
             self.db.dcreate(key)
 
         self.db.dadd(key, ('duration', duration))
+        self.db.dadd(key, ('timestamp', current_time))
 
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
 

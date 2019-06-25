@@ -15,8 +15,8 @@ class Guard(object):
         if not query:
             return Err("Empty query !?")
 
-        for rule in self.rules.values():
+        for name, rule in self.rules.items():
             check = rule.check(query)
             if not check.is_ok():
-                return Err(check.value)
+                return Err({"rule": name, "msg": check.value})
         return Ok(True)
