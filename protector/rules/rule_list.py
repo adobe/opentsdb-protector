@@ -7,5 +7,6 @@ all_rules = [
     'query_no_tags_filters',
     'query_no_aggregator',
     'too_many_datapoints',
-    'exceed_time_limit'
+    'exceed_time_limit',
+    'exceed_frequency'
 ]

@@ -12,6 +12,8 @@ from protector.proxy.http_request import HTTPRequest
 from protector.query.query import OpenTSDBQuery, OpenTSDBResponse
 import socket
 import pprint
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+
 
 class ProxyRequestHandler(BaseHTTPRequestHandler):
 
@@ -72,11 +74,23 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
 
-        self.headers['Host'] = self.backend_netloc
-        self.filter_headers(self.headers)
-        self._handle_request(self.scheme, self.backend_netloc, self.path, self.headers)
+        if self.path == "/metrics":
+            data = generate_latest()
+
+            self.send_response(200)
+            self.send_header("Content-Type", CONTENT_TYPE_LATEST)
+            self.send_header("Content-Length", str(len(data)))
+
+            self.end_headers()
+            self.wfile.write(data)
+        else:
+            self.headers['Host'] = self.backend_netloc
+            self.filter_headers(self.headers)
+            self._handle_request(self.scheme, self.backend_netloc, self.path, self.headers)
 
     def do_POST(self):
+
+        self.protector.REQUESTS_COUNT.inc()
 
         length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(length)
@@ -93,8 +107,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             # Check the payload against the Protector rule set
             result = self.protector.check(self.tsdb_query)
             if not result.is_ok():
-                logging.warning("OpenTSDBQuery blocked: %s. Reason: %s", self.tsdb_query.get_id(), result.value)
-                self.send_error(httplib.BAD_REQUEST, result.value)
+                self.protector.REQUESTS_BLOCKED.inc()
+                getattr(self.protector, str(result.value["rule"]).upper() + "_COUNT").inc()
+
+                logging.warning("OpenTSDBQuery blocked: %s. Reason: %s", self.tsdb_query.get_id(), result.value["msg"])
+                self.send_error(httplib.BAD_REQUEST, result.value["msg"])
                 return
 
             post_data = self.tsdb_query.toJson()
@@ -129,13 +146,13 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         try:
             startTime = time.time()
-            logging.info("startTime: {}".format(startTime))
             response = self.http_request.request(backend_url, method=method, body=body, headers=dict(headers))
             if response:
                 respTime = time.time()
-                logging.info("resptTime: {}".format(respTime))
                 duration = respTime - startTime
-                logging.info("duration: {} s".format(duration))
+                #logging.info("OpenTSDBQuery {} duration: {} s".format(self.tsdb_query.get_id(), duration))
+
+                self.protector.TSDB_REQUEST_LATENCY.observe(duration)
 
                 self._return_response(response, method, duration)
         except socket.timeout, e:
