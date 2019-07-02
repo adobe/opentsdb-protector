@@ -3,9 +3,9 @@ from protector.rules.rule import Rule
 
 
 class RuleChecker(Rule):
-    def __init__(self):
-        # Todo: Make this configurable from config file
-        self.max_duration = 20
+
+    def __init__(self, conf_duration):
+        self.max_duration = conf_duration
 
     @staticmethod
     def description():

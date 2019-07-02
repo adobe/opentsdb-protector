@@ -7,12 +7,12 @@ pidfile: /tmp/protector.pid
 logfile: /tmp/protector.log
 verbose: 2
 rules:
-  - query_no_tags_filters
-  - query_no_aggregator
-  - too_many_datapoints
-  - exceed_time_limit
-  - query_old_data
-  - exceed_frequency
+  query_no_tags_filters:
+  query_no_aggregator:
+  too_many_datapoints: 10000 # number
+  exceed_time_limit:   20    # seconds
+  query_old_data:      90    # days
+  exceed_frequency:    30    # seconds
 # You can blacklist series names
 # Queries matching these patterns will be blocked
 blacklist:

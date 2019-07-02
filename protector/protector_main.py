@@ -5,7 +5,6 @@ import re
 import pickledb
 
 from protector.guard.guard import Guard
-#from protector.sanitizer.sanitizer import Sanitizer
 from prometheus_client import Counter, Summary, Histogram, Gauge
 
 
@@ -19,11 +18,12 @@ class Protector(object):
     def __init__(self, rules, blacklist=[], safe_mode=False):
         """
         :param rules: A list of rules to evaluate
+        :param blacklist: A list of metric names to blacklist
         :param safe_mode: If set to True, allow the query in case it can not be parsed
         :return:
         """
         self.guard = Guard(rules)
-        #self.sanitizer = Sanitizer()
+
         self.blacklist = blacklist
         self.safe_mode = safe_mode
 
@@ -42,17 +42,13 @@ class Protector(object):
 
         self.TSDB_REQUEST_LATENCY = Histogram('tsdb_request_latency_seconds', 'OpenTSDB Requests latency histogram')
 
-        # Dump all query ids
-        #logging.debug(pprint.pprint(self.db.getall()))
-
     def check(self, query):
-        logging.debug("Checking OpenTSDBQuery: {}".format(query.get_id()))
-        #query_sanitized = self.sanitizer.sanitize(query_string)
-        #query = self.parser.parse(query_sanitized)
 
         # Skip check if Safe mode is on
         if self.safe_mode:
             return Ok(True)
+
+        logging.debug("Checking OpenTSDBQuery: {}".format(query.get_id()))
 
         if query:
             qs_names = query.get_metric_names()
@@ -106,6 +102,9 @@ class Protector(object):
         self.db.dump()
 
         logging.info("[{}] stats saved".format(query.get_id()))
+
+        now_time = int(round(time.time()))
+        logging.info("Time spent in save_stats: {} s".format(now_time - current_time))
 
     def save_stats_timeout(self, query, duration):
 
