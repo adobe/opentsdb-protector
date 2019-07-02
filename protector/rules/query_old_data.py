@@ -5,9 +5,8 @@ import datetime
 
 
 class RuleChecker(Rule):
-    def __init__(self):
-        # Todo: Make this configurable from config file
-        self.min_start_date = datetime.datetime.now() - datetime.timedelta(days=90)
+    def __init__(self, conf_days):
+        self.min_start_date = datetime.datetime.now() - datetime.timedelta(days=conf_days)
 
     @staticmethod
     def description():

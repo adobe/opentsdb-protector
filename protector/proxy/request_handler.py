@@ -114,7 +114,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 self.send_error(httplib.BAD_REQUEST, result.value["msg"])
                 return
 
-            post_data = self.tsdb_query.toJson()
+            post_data = self.tsdb_query.to_json()
 
             self.headers['Content-Length'] = str(len(post_data))
 
@@ -168,8 +168,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def _process_response(self, payload, encoding, duration):
         """
-        :type payload: JSON
-        :type encoding: Content Encoding
+        :param payload: JSON
+        :param encoding: Content Encoding
         """
         try:
             resp = OpenTSDBResponse(self.decode_content_body(payload, encoding))
@@ -180,8 +180,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def _process_bad_request(self, payload, encoding):
         """
-        :type payload: JSON
-        :type encoding: Content Encoding
+        :param payload: JSON
+        :param encoding: Content Encoding
         """
         # Re-package the error json for Grafana
         j = json.loads(self.decode_content_body(payload, encoding))
@@ -195,7 +195,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def _return_response(self, response, method, duration):
         """
-        :type response: HTTPResponse
+        :param response: HTTPResponse
         """
         self.filter_headers(response.msg)
         #cl = response.msg["content-length"]

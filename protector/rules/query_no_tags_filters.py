@@ -9,15 +9,15 @@ class RuleChecker(Rule):
 
     @staticmethod
     def reason():
-        return ["Drop queries mean data loss. This is a risky operation that should be restricted to admin users"]
+        return ["Encourage clients to use filters or tags in their queries to restrict the potential data set"]
 
     def check(self, query):
         """
-        :param query:
+        :param query: OpenTSDBQuery
         """
         queries = query.get_queries()
         for q in queries:
-            if not (len(q.get('tags',[])) or len(q.get('filters',[]))):
+            if not (len(q.get('tags', [])) or len(q.get('filters', []))):
                 return Err("Both tags and filters are empty")
 
         return Ok(True)

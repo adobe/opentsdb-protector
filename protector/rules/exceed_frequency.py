@@ -4,9 +4,9 @@ import time
 
 
 class RuleChecker(Rule):
-    def __init__(self):
-        # Todo: Make this configurable from config file
-        self.min_freq = 30
+
+    def __init__(self, conf_freq):
+        self.min_freq = conf_freq
 
     @staticmethod
     def description():

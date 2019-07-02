@@ -9,9 +9,7 @@ class RuleChecker(Rule):
 
     @staticmethod
     def reason():
-        return ["Such series usually indicate that the query is unfinished and ",
-                "was executed by accident. To avoid the error, just remove the dot ",
-                "or add another word (e.g. 'my.graphite.series.' -> 'my.graphite.series')"]
+        return ["Disable fetching of raw data from the database"]
 
     def check(self, query):
         """

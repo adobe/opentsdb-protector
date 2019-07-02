@@ -122,7 +122,7 @@ class OpenTSDBQuery(object):
     def get_stats(self):
         return self.stats
 
-    def toJson(self):
+    def to_json(self):
         return json.dumps(self.q)
 
 
@@ -152,5 +152,5 @@ class OpenTSDBResponse(object):
     def get_stats(self):
         return self.stats
 
-    def toJson(self):
+    def to_json(self):
         return json.dumps(self.r)

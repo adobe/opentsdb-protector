@@ -3,9 +3,9 @@ from protector.rules.rule import Rule
 
 
 class RuleChecker(Rule):
-    def __init__(self):
-        # Todo: Make this configurable from config file
-        self.max_datapoints = 10000
+
+    def __init__(self, conf_datapoints):
+        self.max_datapoints = conf_datapoints
 
     @staticmethod
     def description():
