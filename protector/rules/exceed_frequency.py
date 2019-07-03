@@ -23,9 +23,10 @@ class RuleChecker(Rule):
         """
         stats = query.get_stats()
         if stats:
-
             current_time = int(round(time.time()))
-            timestamp = int(stats.get('timestamp', 0))
+            timestamp = 0
+            if 'timestamp' in stats:
+                timestamp = int(stats['timestamp'])
             if (current_time - timestamp) <= self.min_freq:
                 return Err("Query frequency exceeded: {}s Limit: {}s".format(current_time - timestamp, self.min_freq))
         return Ok(True)

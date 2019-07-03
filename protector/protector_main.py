@@ -94,7 +94,7 @@ class Protector(object):
             'duration': duration,
             'timestamp': current_time
         }
-        self.db.rpush("{}_{}".format(key_prefix, interval), json.dumps(global_stats))
+        self.db.set("{}_{}".format(key_prefix, interval), json.dumps(global_stats))
 
         logging.info("[{}] emittedDPs: {}".format(query.get_id(), sum_dp))
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
@@ -136,5 +136,5 @@ class Protector(object):
 
         if self.db.exists(key):
             logging.info("[{}] Found previous stats for this interval: {} minutes".format(query.get_id(), interval))
-            query.set_stats(self.db.get(key))
+            query.set_stats(json.loads(self.db.get(key)))
 
