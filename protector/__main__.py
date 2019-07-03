@@ -95,7 +95,7 @@ def start_proxy(config):
     :param config:
     :return:
     """
-    protector = Protector(config.rules, config.blacklist)
+    protector = Protector(config.rules, config.blacklist, config.db)
     protector_daemon = ProtectorDaemon(config=config, protector=protector)
 
     daemon = daemonocle.Daemon(
