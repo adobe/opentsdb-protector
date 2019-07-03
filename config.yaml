@@ -6,6 +6,12 @@ backend_port: 4343
 pidfile: /tmp/protector.pid
 logfile: /tmp/protector.log
 verbose: 2
+db:
+  type: redis
+  redis:
+    host: localhost
+    port: 6379
+    password: ""
 rules:
   query_no_tags_filters:
   query_no_aggregator:
