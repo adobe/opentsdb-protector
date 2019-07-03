@@ -29,6 +29,9 @@ class MockHTTPResponse(object):
             time.sleep(self.delay)
         return self.body
 
+    def getheader(self, header):
+        return 'identity'
+
 
 class TestRequests(unittest.TestCase):
     def setUp(self):
@@ -155,13 +158,32 @@ class TestRequests(unittest.TestCase):
 
         self.start_server()
 
-        url_string = "http://{}:{}/db/mydb/series?u=root&p=root"
-        data = json.dumps([{"name": "foo", "columns": ["val"], "points": [[23]]}])
+        url_string = "http://{}:{}/api/query"
+
+        q = {
+                "start": "3m-ago",
+                "queries": [
+                    {
+                        "metric": "mymetric",
+                        "aggregator": "max",
+                        "downsample": "20s-max",
+                        "filters": []
+                    }
+                ]
+            }
+
+        rq = q.copy()
+        rq["showQuery"] = True
+        rq["showStats"] = True
+
+        data = json.dumps(q)
+        dataq = json.dumps(rq)
+
         frontend_url = url_string.format(self.host, self.port)
         backend_url = url_string.format(self.backend_host, self.backend_port)
 
         # Do proxy request
-        req = urllib2.Request(frontend_url, data, {'Content-Type': 'application/x-www-form-urlencoded'})
+        req = urllib2.Request(frontend_url, data, {'Content-Type': 'application/json'})
         response = urllib2.urlopen(req)
 
         # Check if we did a single request to the backend
@@ -174,7 +196,8 @@ class TestRequests(unittest.TestCase):
 
         args, kwargs = mock_http_request_class.request.call_args
         self.assertEqual("POST", kwargs.get('method'))
-        self.assertEqual(data, kwargs.get('body'))
+
+        self.assertEqual(dataq, kwargs.get('body'))
 
         # Check valid response code
         self.assertEqual(response.code, 200)

@@ -11,7 +11,6 @@ from StringIO import StringIO
 from protector.proxy.http_request import HTTPRequest
 from protector.query.query import OpenTSDBQuery, OpenTSDBResponse
 import socket
-import pprint
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 
