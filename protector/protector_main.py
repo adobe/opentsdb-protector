@@ -2,7 +2,8 @@ import logging
 import time
 from result import Ok, Err
 import re
-import pickledb
+import json
+import redis
 
 from protector.guard.guard import Guard
 from prometheus_client import Counter, Summary, Histogram, Gauge
@@ -15,7 +16,7 @@ class Protector(object):
 
     db = None
 
-    def __init__(self, rules, blacklist=[], safe_mode=False):
+    def __init__(self, rules, blacklist=[], db_config={}, safe_mode=False):
         """
         :param rules: A list of rules to evaluate
         :param blacklist: A list of metric names to blacklist
@@ -27,7 +28,10 @@ class Protector(object):
         self.blacklist = blacklist
         self.safe_mode = safe_mode
 
-        self.db = pickledb.load('/tmp/test.db', False, True)
+        self.db = redis.Redis(
+            host=db_config['redis']['host'],
+            port=db_config['redis']['port'],
+            password=db_config['redis']['password'])
 
         self.REQUESTS_COUNT = Counter('requests_total', 'Total number of requests')
         self.REQUESTS_BLOCKED = Counter('requests_blocked', 'Total number of blocked requests')
@@ -74,33 +78,28 @@ class Protector(object):
         logging.info("[{}] start: {}, end: {}, interval: {} minutes".format(query.get_id(), int(query.get_start_timestamp()), end_time, interval))
 
         stats = response.get_stats()
-        key = "{}_{}".format(query.get_id(), interval)
+        key_prefix = query.get_id()
 
-        for item in stats:
-            item.update({'timestamp': current_time, 'start': query.get_start_timestamp(), 'end': query.get_end()})
-
-        if self.db.exists(query.get_id()):
-            self.db.lextend(query.get_id(), stats)
-            if not self.db.exists(key):
-                self.db.dcreate(key)
-        else:
-            self.db.lcreate(query.get_id())
-            self.db.lextend(query.get_id(), stats)
-            self.db.dcreate(key)
+        if not self.db.exists("{}_{}".format(key_prefix, 'query')):
+            self.db.set("{}_{}".format(key_prefix, 'query'), json.dumps(query.q))
 
         sum_dp = 0
-        for x in stats:
-            sum_dp += x['emittedDPs']
+        for item in stats:
+            item.update({'timestamp': current_time, 'start': query.get_start_timestamp(), 'end': query.get_end()})
+            self.db.rpush("{}_{}".format(key_prefix, 'stats'), json.dumps(item))
+            sum_dp += item['emittedDPs']
 
-        self.db.dadd(key, ('emittedDPs', sum_dp))
-        self.db.dadd(key, ('duration', duration))
-        self.db.dadd(key, ('timestamp', current_time))
+        global_stats = {
+            'emittedDPs': sum_dp,
+            'duration': duration,
+            'timestamp': current_time
+        }
+        self.db.lpush("{}_{}".format(key_prefix, interval), json.dumps(global_stats))
 
         logging.info("[{}] emittedDPs: {}".format(query.get_id(), sum_dp))
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
 
-        self.db.dump()
-
+        self.db.bgsave()
         logging.info("[{}] stats saved".format(query.get_id()))
 
         now_time = int(round(time.time()))
@@ -115,15 +114,16 @@ class Protector(object):
 
         key = "{}_{}".format(query.get_id(), interval)
 
-        if not self.db.exists(key):
-            self.db.dcreate(key)
+        stats = {
+            'duration': duration,
+            'timestamp': current_time
+        }
 
-        self.db.dadd(key, ('duration', duration))
-        self.db.dadd(key, ('timestamp', current_time))
+        self.db.lpush(key, json.dumps(stats))
 
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
 
-        self.db.dump()
+        self.db.bgsave()
 
         logging.info("[{}] stats saved".format(query.get_id()))
 
