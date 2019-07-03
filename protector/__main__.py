@@ -56,8 +56,11 @@ def show_rules():
     :return:
     """
     from rules.loader import import_rules
-    from rules.rule_list import all_rules
-    rules = import_rules(all_rules)
+    from protector.config import default_config
+
+    config = default_config.DEFAULT_CONFIG
+    rules = import_rules(config['rules'])
+
     print("")
     for name, rule in rules.iteritems():
         heading = "{} (`{}`)".format(rule.description(), name)

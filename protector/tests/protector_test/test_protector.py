@@ -1,37 +1,104 @@
 import unittest
-from urllib2 import quote
 
 from protector.protector_main import Protector
+from protector.query.query import OpenTSDBQuery
+
+p = Protector({"query_no_aggregator": None}, [], False)
 
 
 class TestProtector(unittest.TestCase):
-    def test_whitelist(self):
-        protector = Protector(["too_many_datapoints"], ["^releases$", "^grafana\.", ".*java.*boot.*version.*"], True)
-        self.assertTrue(protector.check(quote("select * from releases")).is_ok())
-        self.assertFalse(protector.check(quote("select * from some.random.series.releases")).is_ok())
-        self.assertFalse(protector.check(quote("select * from releases.are.important")).is_ok())
+    def setUp(self):
 
-        self.assertTrue(protector.check(quote("select * from grafana.temp_dashboard_Y2hyb25vcy1qb2Jz")).is_ok())
-        self.assertFalse(protector.check(quote("select * from bla.bla.grafana.")).is_ok())
-        self.assertFalse(protector.check(quote("select * from grafana")).is_ok())
+        self.payload1 = """
+                        {
+                          "start": "3m-ago",
+                          "queries": [
+                            {
+                              "metric": "mymetric.received.P95",
+                              "aggregator": "max",
+                              "downsample": "20s-max",
+                              "filters": [
+                                {
+                                  "filter": "DEV",
+                                  "groupBy": false,
+                                  "tagk": "environment",
+                                  "type": "iliteral_or"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                        """
 
-        query = "select tags,title,text_details from merge(/app4\.java\.boot\.version\./) where time > now() - 7d"
-        self.assertTrue(protector.check(quote(query)).is_ok())
+        self.payload2 = """
+                        {
+                          "start": "3m-ago",
+                          "queries": [
+                            {
+                              "metric": "a.mymetric.received.P95",
+                              "aggregator": "max",
+                              "downsample": "20s-max",
+                              "filters": []
+                            }
+                          ]
+                        }
+                        """
 
-        protector = Protector(["too_many_datapoints"], [], True)
-        self.assertFalse(protector.check(quote("select * from grafana")).is_ok())
+        self.payload3 = """
+                        {
+                          "start": "3m-ago",
+                          "queries": [
+                            {
+                              "metric": "mymetric",
+                              "aggregator": "max",
+                              "downsample": "20s-max",
+                              "filters": []
+                            }
+                          ]
+                        }
+                        """
 
-    def test_unknown_queries_safe_mode(self):
-        protector = Protector(["prevent_delete"], [], True)
-        self.assertTrue(protector.check("").is_ok())
-        self.assertTrue(protector.check("asdf").is_ok())
+        self.payload4 = """
+                        {
+                          "start": "3m-ago",
+                          "queries": [
+                            {
+                              "metric": "mymetric",
+                              "aggregator": "none",
+                              "downsample": "20s-max",
+                              "filters": []
+                            }
+                          ]
+                        }
+                        """
 
-    def test_unknown_queries_non_safe_mode(self):
-        protector = Protector(["prevent_delete"], [], False)
-        self.assertFalse(protector.check("").is_ok())
-        self.assertFalse(protector.check("asdf").is_ok())
+    def test_blacklist(self):
 
-    def test_valid_queries(self):
-        # Set protector to unsafe mode
-        protector = Protector(["prevent_delete"], [], False)
-        self.assertTrue(protector.check(quote("select * from bla where x=y")).is_ok())
+        p.blacklist = ["^releases$", "^mymetric\.", ".*java.*boot.*version.*"]
+
+        self.assertFalse(p.check(OpenTSDBQuery(self.payload1)).is_ok())
+        self.assertTrue(p.check(OpenTSDBQuery(self.payload2)).is_ok())
+        self.assertTrue(p.check(OpenTSDBQuery(self.payload3)).is_ok())
+
+        p.blacklist = []
+        self.assertTrue(p.check(OpenTSDBQuery(self.payload1)).is_ok())
+
+    def test_safe_mode(self):
+
+        p.blacklist = []
+        p.safe_mode = True
+
+        self.assertTrue(p.check(OpenTSDBQuery(self.payload4)).is_ok())
+
+        p.safe_mode = False
+        self.assertFalse(p.check(OpenTSDBQuery(self.payload4)).is_ok())
+
+    def test_invalid_queries(self):
+
+        p.safe_mode = False
+
+        with self.assertRaisesRegexp(Exception, 'Invalid OpenTSDB query'):
+            p.check(OpenTSDBQuery('{}'))
+
+        with self.assertRaisesRegexp(Exception, 'Invalid OpenTSDB query'):
+            p.check(OpenTSDBQuery('{"start": ""}'))
