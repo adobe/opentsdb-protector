@@ -94,7 +94,7 @@ class Protector(object):
             'duration': duration,
             'timestamp': current_time
         }
-        self.db.lpush("{}_{}".format(key_prefix, interval), json.dumps(global_stats))
+        self.db.rpush("{}_{}".format(key_prefix, interval), json.dumps(global_stats))
 
         logging.info("[{}] emittedDPs: {}".format(query.get_id(), sum_dp))
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
@@ -119,7 +119,7 @@ class Protector(object):
             'timestamp': current_time
         }
 
-        self.db.lpush(key, json.dumps(stats))
+        self.db.rpush(key, json.dumps(stats))
 
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
 
