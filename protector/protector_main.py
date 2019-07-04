@@ -33,8 +33,6 @@ class Protector(object):
             port=db_config['redis']['port'],
             password=db_config['redis']['password'])
 
-        # self.db.ping()
-
         self.REQUESTS_COUNT = Counter('requests_total', 'Total number of requests')
         self.REQUESTS_BLOCKED = Counter('requests_blocked', 'Total number of blocked requests')
         self.REQUESTS_BLACKLISTED_MATCHED = Counter('requests_blacklisted_matched', 'Total number of blacklisted matched requests')
@@ -74,6 +72,12 @@ class Protector(object):
 
     def save_stats(self, query, response, duration):
 
+        try:
+            self.db.ping()
+        except Exception as e:
+            logging.error("Redis server connection issue: {}".format(e))
+            return
+
         time_raw = time.time()
         current_time = int(round(time_raw))
         current_time_milli = int(round(time_raw * 1000))
@@ -112,6 +116,12 @@ class Protector(object):
 
     def save_stats_timeout(self, query, duration):
 
+        try:
+            self.db.ping()
+        except Exception as e:
+            logging.error("Redis server connection issue: {}".format(e))
+            return
+
         current_time = int(round(time.time()))
         end_time = query.get_end_timestamp()
         interval = int((end_time - query.get_start_timestamp()) / 60)
@@ -133,6 +143,12 @@ class Protector(object):
         logging.info("[{}] stats saved".format(query.get_id()))
 
     def load_stats(self, query):
+
+        try:
+            self.db.ping()
+        except Exception as e:
+            logging.error("Redis server connection issue: {}".format(e))
+            return
 
         end_time = query.get_end_timestamp()
 
