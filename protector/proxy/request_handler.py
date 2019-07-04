@@ -4,7 +4,7 @@ import gzip
 import time
 import zlib
 import logging
-import traceback
+# import traceback
 from BaseHTTPServer import BaseHTTPRequestHandler
 from StringIO import StringIO
 
@@ -41,10 +41,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
     def log_error(self, log_format, *args):
 
         # Suppress "Request timed out: timeout('timed out',)"
-        #if isinstance(args[0], socket.timeout):
+        # if isinstance(args[0], socket.timeout):
 
-        #logging.error("{}".format(traceback.format_exc()))
-        #logging.error(pprint.pprint(args[0]))
+        # logging.error("{}".format(traceback.format_exc()))
+        # logging.error(pprint.pprint(args))
 
         self.log_message(log_format, *args)
 
@@ -66,10 +66,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         """
 
-        logging.info("%s - - [%s] %s\n" %
-                         (self.client_address[0],
-                          self.log_date_time_string(),
-                          format%args))
+        logging.info("%s - - [%s] %s" % (self.client_address[0], self.log_date_time_string(), format % args))
 
     def do_GET(self):
 
@@ -79,13 +76,16 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", CONTENT_TYPE_LATEST)
             self.send_header("Content-Length", str(len(data)))
-
+            self.send_header('Connection', 'close')
             self.end_headers()
             self.wfile.write(data)
         else:
             self.headers['Host'] = self.backend_netloc
             self.filter_headers(self.headers)
             self._handle_request(self.scheme, self.backend_netloc, self.path, self.headers)
+
+        self.finish()
+        self.connection.close()
 
     def do_POST(self):
 
@@ -118,6 +118,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             self.headers['Content-Length'] = str(len(post_data))
 
         self._handle_request(self.scheme, self.backend_netloc, self.path, self.headers, body=post_data, method="POST")
+
+        self.finish()
+        self.connection.close()
 
     def send_error(self, code, message=None):
         """
@@ -214,9 +217,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 body = self._process_bad_request(body, response.getheader('content-encoding'))
 
         self.send_header('Content-Length', str(len(body)))
+        self.send_header('Connection', 'close')
         self.end_headers()
         self.wfile.write(body)
-        #self.wfile.close()
 
 
     do_HEAD = do_GET
