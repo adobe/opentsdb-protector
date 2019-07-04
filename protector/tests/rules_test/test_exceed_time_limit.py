@@ -1,14 +1,14 @@
 import unittest
 
-from protector.rules import query_old_data
+from protector.rules import exceed_time_limit
 from protector.query.query import OpenTSDBQuery
 
 
-class TestQueryOldData(unittest.TestCase):
+class TestQueryExceedFrequency(unittest.TestCase):
 
     def setUp(self):
 
-        self.query_old_data = query_old_data.RuleChecker(90)
+        self.exceed_time_limit = exceed_time_limit.RuleChecker(20)
 
         self.payload1 = """
                         {
@@ -73,13 +73,22 @@ class TestQueryOldData(unittest.TestCase):
                         }
                         """
 
-    def test_old_absolute(self):
+    def test_below(self):
 
-        self.assertFalse(self.query_old_data.check(OpenTSDBQuery(self.payload1)).is_ok())
+        q = OpenTSDBQuery(self.payload1)
+        q.set_stats({'duration': 1.5})
 
-    def test_old_relative(self):
+        self.assertTrue(self.exceed_time_limit.check(q).is_ok())
 
-        self.assertFalse(self.query_old_data.check(OpenTSDBQuery(self.payload2)).is_ok())
-        self.assertFalse(self.query_old_data.check(OpenTSDBQuery(self.payload3)).is_ok())
+    def test_above(self):
 
-        self.assertTrue(self.query_old_data.check(OpenTSDBQuery(self.payload4)).is_ok())
+        q = OpenTSDBQuery(self.payload2)
+        q.set_stats({'duration': 20})
+
+        self.assertFalse(self.exceed_time_limit.check(q).is_ok())
+
+    def test_none(self):
+
+        q = OpenTSDBQuery(self.payload3)
+
+        self.assertTrue(self.exceed_time_limit.check(q).is_ok())
