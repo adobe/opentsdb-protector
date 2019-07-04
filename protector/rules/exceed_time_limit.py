@@ -22,8 +22,7 @@ class RuleChecker(Rule):
         """
         stats = query.get_stats()
         if stats:
-
-            duration = int(stats.get('duration', 0))
+            duration = float(stats.get('duration', 0))
             if self.max_duration <= duration:
                 return Err("Query duration exceeded: {}s Limit: {}s".format(duration, self.max_duration))
         return Ok(True)

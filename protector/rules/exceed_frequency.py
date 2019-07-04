@@ -23,7 +23,6 @@ class RuleChecker(Rule):
         """
         stats = query.get_stats()
         if stats:
-
             current_time = int(round(time.time()))
             timestamp = int(stats.get('timestamp', 0))
             if (current_time - timestamp) <= self.min_freq:
