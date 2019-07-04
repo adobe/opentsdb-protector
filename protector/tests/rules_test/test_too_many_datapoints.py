@@ -1,64 +1,94 @@
 import unittest
 
-from protector.parser.query_parser import QueryParser
-from protector.query.select import SelectQuery
 from protector.rules import too_many_datapoints
+from protector.query.query import OpenTSDBQuery
 
 
-class TestTooManyDatapoints(unittest.TestCase):
+class TestQueryTooManyDatapoints(unittest.TestCase):
+
     def setUp(self):
-        self.parser = QueryParser()
-        self.too_many_datapoints = too_many_datapoints.RuleChecker()
 
-    def test_small_number_of_datapoints(self):
-        """
-        Select queries with a reasonable number of datapoints shall be allowed
-        """
-        self.assertTrue(self.too_many_datapoints.check(
-                SelectQuery('*', '/myseries/', where_stmt='time > now() - 24h')
-        ).is_ok())
+        self.too_many_datapoints = too_many_datapoints.RuleChecker(10000)
 
-        self.assertTrue(self.too_many_datapoints.check(
-                self.parser.parse(
-                        "select * from 'server.search.item.standard-average' where time > now()-24h")
-        ).is_ok())
+        self.payload1 = """
+                        {
+                          "start": 1530695685,
+                          "queries": [
+                            {
+                              "metric": "mymetric.received.P95",
+                              "aggregator": "max",
+                              "downsample": "20s-max",
+                              "filters": [
+                                {
+                                  "filter": "DEV",
+                                  "groupBy": false,
+                                  "tagk": "environment",
+                                  "type": "iliteral_or"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                        """
 
-        self.assertTrue(self.too_many_datapoints.check(
-                self.parser.parse(
-                        'select * from /host.df_complex-free/ where time > now()-30d group by time(12h) order asc')
-        ).is_ok())
+        self.payload2 = """
+                        {
+                          "start": "3n-ago",
+                          "queries": [
+                            {
+                              "metric": "a.mymetric.received.P95",
+                              "aggregator": "max",
+                              "downsample": "20s-max",
+                              "filters": []
+                            }
+                          ]
+                        }
+                        """
 
-        self.assertTrue(self.too_many_datapoints.check(
-                self.parser.parse("select * from /test/ where time > now()-7d group by time(1h)")
-        ).is_ok())
+        self.payload3 = """
+                        {
+                          "start": "90d-ago",
+                          "queries": [
+                            {
+                              "metric": "mymetric",
+                              "aggregator": "max",
+                              "downsample": "20s-max",
+                              "filters": []
+                            }
+                          ]
+                        }
+                        """
 
-        self.assertTrue(self.too_many_datapoints.check(
-                self.parser.parse(
-                        "select * from /^myseries/ where value > -1 and time > now() - 100w GROUP by time(30s) limit 10")
-        ).is_ok())
+        self.payload4 = """
+                        {
+                          "start": "89d-ago",
+                          "queries": [
+                            {
+                              "metric": "mymetric",
+                              "aggregator": "none",
+                              "downsample": "20s-max",
+                              "filters": []
+                            }
+                          ]
+                        }
+                        """
 
-        self.assertTrue(self.too_many_datapoints.check(
-                SelectQuery('*', '/myseries/', where_stmt='time > now() - 25h')
-        ).is_ok())
+    def test_too_many(self):
 
-        self.assertTrue(self.too_many_datapoints.check(
-                self.parser.parse("select * from /test/ where time > now()-7d group by time(10m)")
-        ).is_ok())
+        q = OpenTSDBQuery(self.payload1)
+        q.set_stats({'emittedDPs': 10001})
 
-    def test_big_number_of_datapoints(self):
-        self.assertFalse(self.too_many_datapoints.check(
-                self.parser.parse("select * from /test/ where time > now()-7d group by time(1m)")
-        ).is_ok())
+        self.assertFalse(self.too_many_datapoints.check(q).is_ok())
 
-        self.assertFalse(self.too_many_datapoints.check(
-                self.parser.parse("select median(value) from /test/ where time > now()-30d group by time(15s)")
-        ).is_ok())
+    def test_less(self):
 
-        self.assertFalse(self.too_many_datapoints.check(
-                self.parser.parse(
-                        "select * from /^mylongseriesname/ where value > -1 and time > now() - 1w GROUP by time(30s)")
-        ).is_ok())
+        q = OpenTSDBQuery(self.payload2)
+        q.set_stats({'emittedDPs': 999})
 
-        self.assertFalse(self.too_many_datapoints.check(
-                self.parser.parse("select * from /my.dashboard_.*/ where title =~ /.*.*/i")
-        ).is_ok())
+        self.assertTrue(self.too_many_datapoints.check(q).is_ok())
+
+    def test_none(self):
+
+        q = OpenTSDBQuery(self.payload3)
+
+        self.assertTrue(self.too_many_datapoints.check(q).is_ok())

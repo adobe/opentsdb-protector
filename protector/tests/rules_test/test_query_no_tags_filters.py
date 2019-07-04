@@ -1,14 +1,14 @@
 import unittest
 
-from protector.rules import query_old_data
+from protector.rules import query_no_tags_filters
 from protector.query.query import OpenTSDBQuery
 
 
-class TestQueryOldData(unittest.TestCase):
+class TestQueryNoTagsFilters(unittest.TestCase):
 
     def setUp(self):
 
-        self.query_old_data = query_old_data.RuleChecker(90)
+        self.query_no_tags_filters = query_no_tags_filters.RuleChecker()
 
         self.payload1 = """
                         {
@@ -39,6 +39,10 @@ class TestQueryOldData(unittest.TestCase):
                               "metric": "a.mymetric.received.P95",
                               "aggregator": "max",
                               "downsample": "20s-max",
+                              "tags": {
+                                "percentile": "wildcard(*)",
+                                "task": "literal_or(Source)"
+                              },                              
                               "filters": []
                             }
                           ]
@@ -52,8 +56,7 @@ class TestQueryOldData(unittest.TestCase):
                             {
                               "metric": "mymetric",
                               "aggregator": "max",
-                              "downsample": "20s-max",
-                              "filters": []
+                              "downsample": "20s-max"
                             }
                           ]
                         }
@@ -67,19 +70,27 @@ class TestQueryOldData(unittest.TestCase):
                               "metric": "mymetric",
                               "aggregator": "none",
                               "downsample": "20s-max",
-                              "filters": []
+                              "filters": [],
+                              "tags": {}
                             }
                           ]
                         }
                         """
 
-    def test_old_absolute(self):
+    def test_no_tags(self):
 
-        self.assertFalse(self.query_old_data.check(OpenTSDBQuery(self.payload1)).is_ok())
+        q = OpenTSDBQuery(self.payload1)
+        self.assertTrue(self.query_no_tags_filters.check(q).is_ok())
 
-    def test_old_relative(self):
+    def test_no_filters(self):
 
-        self.assertFalse(self.query_old_data.check(OpenTSDBQuery(self.payload2)).is_ok())
-        self.assertFalse(self.query_old_data.check(OpenTSDBQuery(self.payload3)).is_ok())
+        q = OpenTSDBQuery(self.payload2)
+        self.assertTrue(self.query_no_tags_filters.check(q).is_ok())
 
-        self.assertTrue(self.query_old_data.check(OpenTSDBQuery(self.payload4)).is_ok())
+    def test_both(self):
+
+        q = OpenTSDBQuery(self.payload3)
+        self.assertFalse(self.query_no_tags_filters.check(q).is_ok())
+
+        q = OpenTSDBQuery(self.payload4)
+        self.assertFalse(self.query_no_tags_filters.check(q).is_ok())
