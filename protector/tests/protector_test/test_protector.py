@@ -2,12 +2,29 @@ import unittest
 
 from protector.protector_main import Protector
 from protector.query.query import OpenTSDBQuery
+from mock import mock
 
-p = Protector({"query_no_aggregator": None}, [], False)
+p = None
+
+
+class MockRedis(object):
+    def exists(self, key):
+        return False
+
+
+@mock.patch("redis.Redis", mock.MagicMock(return_value=MockRedis()))
+def get_protector():
+    global p
+    db_conf = {"redis": {"host":"", "port":"", "password":""}}
+    p = Protector({"query_no_aggregator": None}, [], db_conf, False)
 
 
 class TestProtector(unittest.TestCase):
+
     def setUp(self):
+
+        if not p:
+            get_protector()
 
         self.payload1 = """
                         {
