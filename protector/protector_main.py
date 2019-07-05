@@ -108,7 +108,7 @@ class Protector(object):
         logging.info("[{}] emittedDPs: {}".format(query.get_id(), sum_dp))
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
 
-        self.db.bgsave()
+        # self.db.bgsave() - Unsupported without persistence layer in Azure
         logging.info("[{}] stats saved".format(query.get_id()))
 
         now_time = int(round(time.time() * 1000))
@@ -138,7 +138,7 @@ class Protector(object):
 
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
 
-        self.db.bgsave()
+        # self.db.bgsave() - Unsupported without persistence layer in Azure
 
         logging.info("[{}] stats saved".format(query.get_id()))
 
