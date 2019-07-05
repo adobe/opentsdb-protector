@@ -23,8 +23,8 @@ requires = [
     "PyYAML",
     "result==0.3.0",
     "wheel",
-    "pickledb==0.9.2",
-    "prometheus_client==0.7.1"
+    "prometheus_client==0.7.1",
+    "redis==3.2.1"
 ]
 
 test_requires = [
