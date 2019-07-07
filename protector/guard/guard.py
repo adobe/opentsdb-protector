@@ -13,7 +13,7 @@ class Guard(object):
 
     def is_allowed(self, query):
         if not query:
-            return Err("Empty query !?")
+            return Err({"msg": "Empty query !?"})
 
         for name, rule in self.rules.items():
             check = rule.check(query)

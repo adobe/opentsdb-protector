@@ -44,6 +44,8 @@ class Protector(object):
         self.TOO_MANY_DATAPOINTS_COUNT = Counter('too_many_datapoints_count', 'too_many_datapoints rule match count')
         self.EXCEED_FREQUENCY_COUNT = Counter('exceed_frequency_count', 'exceed_frequency rule match count')
 
+        self.DATAPOINTS_SERVED_COUNT = Counter('datapoints_served_count', 'datapoints served count')
+
         self.TSDB_REQUEST_LATENCY = Histogram('tsdb_request_latency_seconds', 'OpenTSDB Requests latency histogram')
 
     def check(self, query):
@@ -61,14 +63,14 @@ class Protector(object):
                     match = re.match(pattern, qn)
                     if match:
                         self.REQUESTS_BLACKLISTED_MATCHED.inc()
-                        return Err("Metric name: {} is blacklisted".format(qn))
+                        return Err({"msg": "Metric name: {} is blacklisted".format(qn)})
 
             self.load_stats(query)
             return self.guard.is_allowed(query)
         else:
             error_msg = "Empty OpenTSDBQuery provided!"
             logging.info(error_msg)
-            return Err(error_msg)
+            return Err({"msg": error_msg})
 
     def save_stats(self, query, response, duration):
 
@@ -97,6 +99,8 @@ class Protector(object):
             item.update({'timestamp': current_time, 'start': query.get_start_timestamp(), 'end': query.get_end()})
             self.db.rpush("{}_{}".format(key_prefix, 'stats'), json.dumps(item))
             sum_dp += item['emittedDPs']
+
+        self.DATAPOINTS_SERVED_COUNT.inc(sum_dp)
 
         global_stats = {
             'emittedDPs': sum_dp,
