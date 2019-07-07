@@ -5,6 +5,7 @@ DEFAULT_CONFIG = {
     # Connection to the time series database API
     'backend_host': 'localhost',
     'backend_port': 8086,
+    'safe_mode': False,
     'rules': {
         'query_no_tags_filters': None,
         'query_no_aggregator': None,

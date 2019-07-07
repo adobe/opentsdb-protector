@@ -6,6 +6,7 @@ backend_port: 4343
 pidfile: /tmp/protector.pid
 logfile: /tmp/protector.log
 verbose: 2
+safe_mode: False
 db:
   type: redis
   redis:
