@@ -16,7 +16,7 @@ class MockRedis(object):
 def get_protector():
     global p
     db_conf = {"redis": {"host":"", "port":"", "password":""}}
-    p = Protector({"query_no_aggregator": None}, [], db_conf, False)
+    p = Protector({"query_no_aggregator": None}, [], [], db_conf, False)
 
 
 class TestProtector(unittest.TestCase):
@@ -102,7 +102,7 @@ class TestProtector(unittest.TestCase):
 
     def test_safe_mode(self):
 
-        p.blacklist = []
+        p.blacklist = ["^releases$", "^mymetric"]
         p.safe_mode = True
 
         self.assertTrue(p.check(OpenTSDBQuery(self.payload4)).is_ok())

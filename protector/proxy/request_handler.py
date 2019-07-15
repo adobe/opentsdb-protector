@@ -65,8 +65,12 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         message.
 
         """
+        xff = self.headers.getheader('X-Forwarded-For', '-')
+        xgo = self.headers.getheader('X-Grafana-Org-Id', '-')
+        ua = self.headers.getheader('User-Agent', '-')
 
-        logging.info("%s - - [%s] %s" % (self.client_address[0], self.log_date_time_string(), format % args))
+        logging.info("%s - - [%s] %s [X-Forwarded-For: %s, X-Grafana-Org-Id: %s, User-Agent: %s]" %
+                     (self.client_address[0], self.log_date_time_string(), format % args, xff, xgo, ua))
 
     def do_GET(self):
 

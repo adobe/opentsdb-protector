@@ -1,5 +1,6 @@
 import logging
 import time
+import datetime as dt
 from result import Ok, Err
 import re
 import json
@@ -16,7 +17,7 @@ class Protector(object):
 
     db = None
 
-    def __init__(self, rules, blacklist=[], db_config={}, safe_mode=False):
+    def __init__(self, rules, blacklist=[], whitelist=[], db_config={}, safe_mode=False):
         """
         :param rules: A list of rules to evaluate
         :param blacklist: A list of metric names to blacklist
@@ -26,6 +27,7 @@ class Protector(object):
         self.guard = Guard(rules)
 
         self.blacklist = blacklist
+        self.whitelist = whitelist
         self.safe_mode = safe_mode
 
         self.db = redis.Redis(
@@ -35,11 +37,15 @@ class Protector(object):
 
         self.REQUESTS_COUNT = Counter('requests_total', 'Total number of requests')
         self.REQUESTS_BLOCKED = Counter('requests_blocked', 'Total number of blocked requests')
-        self.REQUESTS_BLACKLISTED_MATCHED = Counter('requests_blacklisted_matched', 'Total number of blacklisted matched requests')
+        self.REQUESTS_BLACKLISTED_MATCHED = Counter('requests_blacklisted_matched',
+                                                    'Total number of blacklisted matched requests')
+        self.REQUESTS_WHITELISTED_MATCHED = Counter('requests_whitelisted_matched',
+                                                    'Total number of whitelisted matched requests')
 
         self.EXCEED_TIME_LIMIT_COUNT = Counter('exceed_time_limit_count', 'exceed_time_limit rule match count')
         self.QUERY_NO_AGGREGATOR_COUNT = Counter('query_no_aggregator_count', 'query_no_aggregator rule match count')
-        self.QUERY_NO_TAGS_FILTERS_COUNT = Counter('query_no_tags_filters_count', 'query_no_tags_filters rule match count')
+        self.QUERY_NO_TAGS_FILTERS_COUNT = Counter('query_no_tags_filters_count',
+                                                   'query_no_tags_filters rule match count')
         self.QUERY_OLD_DATA_COUNT = Counter('query_old_data_count', 'query_old_data rule match count')
         self.TOO_MANY_DATAPOINTS_COUNT = Counter('too_many_datapoints_count', 'too_many_datapoints rule match count')
         self.EXCEED_FREQUENCY_COUNT = Counter('exceed_frequency_count', 'exceed_frequency rule match count')
@@ -64,6 +70,18 @@ class Protector(object):
                     if match:
                         self.REQUESTS_BLACKLISTED_MATCHED.inc()
                         return Err({"msg": "Metric name: {} is blacklisted".format(qn)})
+
+            all_match = True
+            for pattern in self.whitelist:
+                for qn in qs_names:
+                    match = re.match(pattern, qn)
+                    all_match = all_match and bool(match)
+                    if match:
+                        self.REQUESTS_WHITELISTED_MATCHED.inc()
+                        logging.info("Whitelisted metric matched: {}".format(qn))
+
+            if all_match:
+                return Ok(True)
 
             self.load_stats(query)
             return self.guard.is_allowed(query)
@@ -107,10 +125,47 @@ class Protector(object):
             'duration': duration,
             'timestamp': current_time
         }
+
+        if not self.db.hexists("{}_{}".format(key_prefix, interval), 'first_occurrence'):
+            global_stats['first_occurrence'] = current_time
+
         self.db.hmset("{}_{}".format(key_prefix, interval), global_stats)
 
         logging.info("[{}] emittedDPs: {}".format(query.get_id(), sum_dp))
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
+
+        # Get current day of the month and hour of the day
+        d = dt.datetime.now()
+        hour = d.hour
+        day = d.day
+
+        # Top durations
+        top_duration_key = "top_duration_{}_{}".format(day, hour)
+        zkey = "{}_{}".format(key_prefix, interval)
+
+        sc = self.db.zscore(top_duration_key, zkey)
+
+        if not sc:
+            self.db.zadd(top_duration_key, {zkey: duration})
+            self.db.expire(top_duration_key, 3600 * 24)  # expire after 1 day
+        else:
+            if float(duration) > float(sc):
+                self.db.zadd(top_duration_key, {zkey: duration})
+        ###
+
+        # Top datapoints
+        top_dps_key = "top_dps_{}_{}".format(day, hour)
+        zkey = "{}_{}".format(key_prefix, interval)
+
+        sc = self.db.zscore(top_dps_key, zkey)
+
+        if not sc:
+            self.db.zadd(top_dps_key, {zkey: sum_dp})
+            self.db.expire(top_dps_key, 3600 * 24)  # expire after 1 day
+        else:
+            if int(sum_dp) > int(sc):
+                self.db.zadd(top_dps_key, {zkey: sum_dp})
+        ###
 
         # self.db.bgsave() - Unsupported without persistence layer in Azure
         logging.info("[{}] stats saved".format(query.get_id()))
