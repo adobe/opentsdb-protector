@@ -17,6 +17,9 @@ DEFAULT_CONFIG = {
     # Queries for series names matching one of
     # the following patterns will be rejected
     'blacklist': [],
+    # Queries for series names matching one of
+    # the following patterns will skip the filters (if not rejected by the blacklist!)
+    'whitelist': [],
     # Run in foreground?
     'foreground': False,
     # Default PID file location

@@ -28,3 +28,7 @@ blacklist:
   - ^c_test_events$
   - ^application_release$
   - .*java.*boot.*version.*
+# You can whitelist series names
+# Queries matching these patterns will skip the filters (if not rejected by the blacklist!)
+whitelist:
+  - test\.my\.
