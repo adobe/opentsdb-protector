@@ -64,24 +64,27 @@ class Protector(object):
 
         if query:
             qs_names = query.get_metric_names()
-            for pattern in self.blacklist:
-                for qn in qs_names:
-                    match = re.match(pattern, qn)
-                    if match:
-                        self.REQUESTS_BLACKLISTED_MATCHED.inc()
-                        return Err({"msg": "Metric name: {} is blacklisted".format(qn)})
 
-            all_match = True
-            for pattern in self.whitelist:
-                for qn in qs_names:
-                    match = re.match(pattern, qn)
-                    all_match = all_match and bool(match)
-                    if match:
-                        self.REQUESTS_WHITELISTED_MATCHED.inc()
-                        logging.info("Whitelisted metric matched: {}".format(qn))
+            if self.blacklist:
+                for pattern in self.blacklist:
+                    for qn in qs_names:
+                        match = re.match(pattern, qn)
+                        if match:
+                            self.REQUESTS_BLACKLISTED_MATCHED.inc()
+                            return Err({"msg": "Metric name: {} is blacklisted".format(qn)})
 
-            if all_match:
-                return Ok(True)
+            if self.whitelist:
+                all_match = True
+                for pattern in self.whitelist:
+                    for qn in qs_names:
+                        match = re.match(pattern, qn)
+                        all_match = all_match and bool(match)
+                        if match:
+                            self.REQUESTS_WHITELISTED_MATCHED.inc()
+                            logging.info("Whitelisted metric matched: {}".format(qn))
+
+                if all_match:
+                    return Ok(True)
 
             self.load_stats(query)
             return self.guard.is_allowed(query)
