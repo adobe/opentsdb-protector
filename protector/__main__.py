@@ -7,10 +7,9 @@ from protector.daemon import ProtectorDaemon
 from protector.config import loader
 from protector.protector_main import Protector
 
-__title__ = 'protector'
-__author__ = 'Matthias Endler'
+__title__ = 'opentsdb-protector'
+__author__ = 'Valentin Rojco'
 __license__ = 'BSD-3'
-__copyright__ = 'Copyright 2016, trivago GmbH under BSD-3'
 
 
 def main():
