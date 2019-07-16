@@ -15,9 +15,6 @@ except(IOError, ImportError):
 
 requires = [
     "daemonocle",
-    "funcsigs",
-    "httpretty",
-    "jdatetime",
     "pbr",
     "python-dateutil",
     "PyYAML",
@@ -38,7 +35,7 @@ test_requires = [
 
 setup(name='protector',
       version=__version__,
-      description='A circuit breaker for Time series databases like InfluxDB that prevents expensive queries',
+      description='Circuit breaker and analytics tool for OpenTSDB queries',
       long_description=long_description,
       classifiers=[
           'Development Status :: 4 - Beta',
@@ -50,10 +47,10 @@ setup(name='protector',
           "Programming Language :: Python :: 2.7",
           "Programming Language :: Python :: Implementation :: PyPy",
       ],
-      keywords='influxdb proxy graphite circuit-breaker',
-      url='http://github.com/trivago/protector',
-      author='Matthias Endler',
-      author_email='matthias.endler@trivago.com',
+      keywords='opentsdb query proxy circuit-breaker',
+      url='https://git.corp.adobe.com/rojco/opentsdb-protector',
+      author='Valentin Rojco',
+      author_email='rojco@adobe.com',
       license='BSD',
       packages=find_packages(),
       install_requires=requires,

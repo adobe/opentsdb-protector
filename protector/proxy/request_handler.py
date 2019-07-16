@@ -1,17 +1,18 @@
-import json
-import httplib
 import gzip
+import httplib
+import json
+import logging
+import socket
 import time
 import zlib
-import logging
 # import traceback
 from BaseHTTPServer import BaseHTTPRequestHandler
 from StringIO import StringIO
 
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+
 from protector.proxy.http_request import HTTPRequest
 from protector.query.query import OpenTSDBQuery, OpenTSDBResponse
-import socket
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 
 class ProxyRequestHandler(BaseHTTPRequestHandler):
@@ -65,12 +66,16 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         message.
 
         """
-        xff = self.headers.getheader('X-Forwarded-For', '-')
-        xgo = self.headers.getheader('X-Grafana-Org-Id', '-')
-        ua = self.headers.getheader('User-Agent', '-')
+        if self.headers:
+            xff = self.headers.getheader('X-Forwarded-For', '-')
+            xgo = self.headers.getheader('X-Grafana-Org-Id', '-')
+            ua = self.headers.getheader('User-Agent', '-')
 
-        logging.info("%s - - [%s] %s [X-Forwarded-For: %s, X-Grafana-Org-Id: %s, User-Agent: %s]" %
-                     (self.client_address[0], self.log_date_time_string(), format % args, xff, xgo, ua))
+            logging.info("%s - - [%s] %s [X-Forwarded-For: %s, X-Grafana-Org-Id: %s, User-Agent: %s]" %
+                         (self.client_address[0], self.log_date_time_string(), format % args, xff, xgo, ua))
+        else:
+            logging.info("%s - - [%s] %s" %
+                         (self.client_address[0], self.log_date_time_string(), format % args))
 
     def do_GET(self):
 
