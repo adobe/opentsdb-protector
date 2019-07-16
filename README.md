@@ -10,7 +10,7 @@ Inspired by: https://github.com/trivago/Protector
 
 Goals:
 
-* Prevent aggresive and poorly constructed queries to OpenTSDB that could overload the cluster.
+* Prevent aggresive, poorly constructed or expensive queries to OpenTSDB that could overload the cluster.
 * Offer a set of filter rules and an internal state to match, log, filter and analyze queries
 * Offer blacklisting, whitelisting and passthrough
 * Return error messages in Grafana error format
