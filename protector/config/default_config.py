@@ -4,7 +4,7 @@ DEFAULT_CONFIG = {
     'port': 8888,
     # Connection to the time series database API
     'backend_host': 'localhost',
-    'backend_port': 8086,
+    'backend_port': 4242,
     'safe_mode': False,
     'rules': {
         'query_no_tags_filters': None,

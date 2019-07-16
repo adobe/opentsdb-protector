@@ -33,7 +33,7 @@ test_requires = [
     "six"
 ]
 
-setup(name='protector',
+setup(name='opentsdb-protector',
       version=__version__,
       description='Circuit breaker and analytics tool for OpenTSDB queries',
       long_description=long_description,
@@ -57,7 +57,7 @@ setup(name='protector',
       test_suite='nose.collector',
       tests_require=test_requires,
       entry_points={
-          'console_scripts': ['protector=protector.__main__:main'],
+          'console_scripts': ['opentsdb-protector=protector.__main__:main'],
       },
       include_package_data=True,
       zip_safe=False)

@@ -79,16 +79,16 @@ def flatten(d, parent_key='', sep='_'):
 
 
 def parse_args(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(description='Protector - A circruit breaker for Time Series Databases',
+    parser = argparse.ArgumentParser(description='opentsdb-protector - Circuit breaker and analytics tool for OpenTSDB queries',
                                      formatter_class=SmartFormatter)
     parser.add_argument('--host', type=str, default=argparse.SUPPRESS,
                         help='Hostname to bind to (default: localhost)')
     parser.add_argument('--port', type=int, default=argparse.SUPPRESS,
                         help='Port to bind to (default: 8888)')
     parser.add_argument('--backend_host', type=str, default=argparse.SUPPRESS,
-                        help='Hostname of Time Series Database (default: localhost)')
+                        help='OpenTSDB hostname (default: localhost)')
     parser.add_argument('--backend_port', type=int, default=argparse.SUPPRESS,
-                        help='Port of Time Series Database (default: 8086)')
+                        help='OpenTSDB port (default: 4242)')
     parser.add_argument('-c', '--configfile', type=str, default=argparse.SUPPRESS,
                         help='Configfile path (default: None)')
     parser.add_argument('-v', '--verbose', action='count', default=argparse.SUPPRESS,
