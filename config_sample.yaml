@@ -1,12 +1,12 @@
 ---
-host: localhost
+host: 0.0.0.0
 port: 8888
 backend_host: localhost
-backend_port: 4343
+backend_port: 4242
 pidfile: /tmp/protector.pid
 logfile: /tmp/protector.log
-verbose: 2
 safe_mode: False
+verbose: 2
 db:
   type: redis
   redis:
@@ -20,15 +20,14 @@ rules:
   exceed_time_limit:   20    # seconds
   query_old_data:      90    # days
   exceed_frequency:    30    # seconds
-# You can blacklist series names
+# You can blacklist metric names
 # Queries matching these patterns will be blocked
 blacklist:
-  - grafana\.
-  - ^php_serverstart$
-  - ^c_test_events$
+  - bad\.metric
+  - ^regex_metric$
   - ^application_release$
   - .*java.*boot.*version.*
-# You can whitelist series names
+# You can whitelist metric names
 # Queries matching these patterns will skip the filters (if not rejected by the blacklist!)
 whitelist:
-  - test\.my\.
+  - test\.e2e\.

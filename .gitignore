@@ -59,4 +59,4 @@ tags
 .eggs
 venv
 venv3
-contrib/benchmark/real_queries.txt
+config.yaml
