@@ -1,6 +1,7 @@
-# opentsdb-protector
+opentsdb-protector
+======
 
-## Intro
+### Introduction
 
 This project was born as an effort to bring in more visibility into OpenTSDB query traffic as well as to provide
 filtering and throttling capabilities for opentsdb queries.\
@@ -18,3 +19,6 @@ Goals:
 opentsdb-protector acts as a proxy between the query source (e.g. Grafana) and OpenTSDB.\
 **It does not and should not be used to store data in OpenTSDB over HTTP (no /api/put proxying)**
 
+### Licensing
+
+This project is licensed under BSD License. See [LICENSE](LICENSE) for more information.
