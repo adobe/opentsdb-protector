@@ -27,7 +27,7 @@ requires = [
     "daemonocle",
     "pbr",
     "python-dateutil",
-    "PyYAML",
+    "PyYAML>=4.2b1",
     "result==0.3.0",
     "wheel",
     "prometheus_client==0.7.1",
