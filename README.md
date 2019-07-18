@@ -83,7 +83,7 @@ You also need a Redis server for the application to store the statistics. Supply
 You need to have Python 2.7 installed on your server
 
 ```Python
-pip install opentsdb-protector
+python setup.py install
 opentsdb-protector -c config.yaml
 ```
 
