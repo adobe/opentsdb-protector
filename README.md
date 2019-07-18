@@ -29,29 +29,63 @@ You can show a description of all available rules with `opentsdb-protector --sho
 Here's the current list of rules:
 
 #### Prevent queries with no aggregation (`query_no_aggregator`) ####
+
 Queries that don't use aggregation can be responsible for high volumes of raw data being pulled from the tsdb.\
 This is a stateless filter. You can use it if you choose to enforce such a policy
 
 #### Prevent queries with no tags or filters (`query_no_tags_filters`) ####
+
 Using tags or filters is just a good practice since they limit the dataset being processed by the tsdb.
 
 #### Prevent querying for very old data (`query_old_data`) ####
+
 Such queries can impact tsdb performance because it needs to open and parse very old shards from disk.\
 This is a stateless filter. A time limit can be specified in `config.yaml`
 
 #### Prevent too many datapoints per query (`too_many_datapoints`) ####
+
 Such queries can impact tsdb performance or overload the client with too much data transferred over the wire.\
 A limit on the data points amount can be specified in `config.yaml`. This is a stateful filter, the application will\
 reject the query based on the dps amount from the last query execution
 
 #### Prevent queries that exceed a certain frequency (`exceed_frequency`) ####
+
 Executing the same query (especially an expensive one) much too often usually does not bring any value \
 but affects the cluster performance. This is a stateful filter, the application will \
 reject the query based on the last query execution time. A max frequency can be specified in `config.yaml`
 
 #### Prevent queries that exceed a certain execution time (`exceed_time_limit`) ####
+
 Queries that take too long to complete can be a cause for concern. You can filter them using this rule while you investigate.\
 This is a stateful filter, the application will reject the query based on the previous query duration
+
+#### Blacklisting
+
+You can blacklist series names in the config. Queries for metric names matching one of the patterns will be rejected
+
+#### Whitelisting
+
+You can whitelist series names in the config. If the metric name has not been blacklisted above it will be allowed to pass through without any filtering
+
+#### Safe Mode
+
+If `safe_mode` flag is on the application will proxy all the queries without any filtering whatsoever.\
+Especially useful in the beginning, for collecting statistics about the queries before imposing restrictions.
+
+## Usage
+
+opentsdb-protector can be run as a stand-alone Python application.
+
+Please create a `config.yaml` with all your settings. Use the sample config file supplied in the repo `config_sample.yaml`\
+to get started. Make sure to adjust the `backend_host` and `backend_port` to point to your OpenTSDB endpoint.\
+You also need a Redis server for the application to store the statistics. Supply the connection information in the `db` section of the config.
+
+You need to have Python 2.7 installed on your server
+
+```Python
+pip install opentsdb-protector
+opentsdb-protector -c config.yaml
+```
 
 ### Contributing
 
