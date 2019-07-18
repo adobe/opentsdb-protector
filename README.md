@@ -87,6 +87,49 @@ pip install opentsdb-protector
 opentsdb-protector -c config.yaml
 ```
 
+### Wiring up
+
+After you've started opentsdb-protector, point all your user-facing endpoints (e.g. Grafana) to it instead of OpenTSDB.  
+That should do the trick.
+
+
+## Commandline options
+
+You can overwrite the following settings from the command-line:
+
+```
+usage: opentsdb-protector [-h] [--host HOST] [--port PORT]
+                   [--backend_host BACKEND_HOST] [--backend_port BACKEND_PORT]
+                   [-c CONFIGFILE] [-v] [--show_rules] [-f] [--version]
+                   [{start,stop,status,restart}]
+
+opentsdb-protector - Circuit breaker and analytics tool for OpenTSDB queries
+
+positional arguments:
+  {start,stop,status,restart}
+                        One of the following options:
+                        start: Start the daemon (default)
+                        stop: Stop the daemon
+                        status: Show current status
+                        restart: Restart the daemon
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --host HOST           Hostname to bind to (default: localhost)
+  --port PORT           Port to bind to (default: 8888)
+  --backend_host BACKEND_HOST
+                        OpenTSDB hostname (default: localhost)
+  --backend_port BACKEND_PORT
+                        OpenTSDB port (default: 4242)
+  -c CONFIGFILE, --configfile CONFIGFILE
+                        Configfile path (default: None)
+  -v, --verbose         Set verbosity level. Increase verbosity by adding a v:
+                        -v -vv -vvv (default: 0)
+  --show_rules          Show a list of available rules and quit
+  -f, --foreground      Run in foreground. Don't daemonize on start.
+  --version             Show version
+```
+
 ### Contributing
 
 Contributions are welcomed! Read the [Contributing Guide](./.github/CONTRIBUTING.md) for more information.
