@@ -51,7 +51,6 @@ class ProtectorDaemon(object):
             logging_config["stream"] = sys.stdout
         else:
             logging_config["filename"] = self.config.logfile
-            logging_config["filemode"] = "w"
         logging.basicConfig(**logging_config)
 
     def run(self):
