@@ -160,7 +160,7 @@ class Protector(object):
 
         if not sc:
             self.db.zadd(top_duration_key, {zkey: duration})
-            self.db.expire(top_duration_key, 3600 * 24)  # expire after 1 day
+            self.db.expire(top_duration_key, 3600 * 24 * 7)  # expire after 1 week
         else:
             if float(duration) > float(sc):
                 self.db.zadd(top_duration_key, {zkey: duration})
@@ -174,7 +174,7 @@ class Protector(object):
 
         if not sc:
             self.db.zadd(top_dps_key, {zkey: sum_dp})
-            self.db.expire(top_dps_key, 3600 * 24)  # expire after 1 day
+            self.db.expire(top_dps_key, 3600 * 24 * 7)  # expire after 1 week
         else:
             if int(sum_dp) > int(sc):
                 self.db.zadd(top_dps_key, {zkey: sum_dp})
