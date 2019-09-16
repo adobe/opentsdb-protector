@@ -108,8 +108,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
 
-        self.protector.REQUESTS_COUNT.inc()
-
         length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(length)
 
@@ -125,20 +123,21 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             # Check the payload against the Protector rule set
             result = self.protector.check(self.tsdb_query)
             if not result.is_ok():
-                self.protector.REQUESTS_BLOCKED.inc()
+                self.protector.REQUESTS_BLOCKED.labels(self.protector.safe_mode, result.value["rule"])
 
-                if "rule" in result.value:
-                    getattr(self.protector, str(result.value["rule"]).upper() + "_COUNT").inc()
-
-                logging.warning("OpenTSDBQuery blocked: %s. Reason: %s", self.tsdb_query.get_id(), result.value["msg"])
-                self.send_error(httplib.BAD_REQUEST, result.value["msg"])
-                return
+                if not self.protector.safe_mode:
+                    logging.warning("OpenTSDBQuery blocked: %s. Reason: %s", self.tsdb_query.get_id(), result.value["msg"])
+                    self.send_error(httplib.FORBIDDEN, result.value["msg"])
+                    return
 
             post_data = self.tsdb_query.to_json()
 
             self.headers['Content-Length'] = str(len(post_data))
 
-        self._handle_request(self.scheme, self.backend_netloc, self.path, self.headers, body=post_data, method="POST")
+        status = self._handle_request(self.scheme, self.backend_netloc, self.path, self.headers, body=post_data, method="POST")
+
+        #['method', 'path', 'return_code']
+        self.protector.REQUESTS_COUNT.labels('POST', self.path, status).inc()
 
         self.finish()
         self.connection.close()
@@ -166,28 +165,42 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         Run the actual request
         """
         backend_url = "{}://{}{}".format(scheme, netloc, path)
+        startTime = time.time()
 
         try:
-            startTime = time.time()
             response = self.http_request.request(backend_url, method=method, body=body, headers=dict(headers))
-            if response:
-                respTime = time.time()
-                duration = respTime - startTime
-                #logging.info("OpenTSDBQuery {} duration: {} s".format(self.tsdb_query.get_id(), duration))
 
-                self.protector.TSDB_REQUEST_LATENCY.observe(duration)
+            respTime = time.time()
+            duration = respTime - startTime
 
-                self._return_response(response, method, duration)
+            self.protector.TSDB_REQUEST_LATENCY.labels(response.status).observe(duration)
+            self._return_response(response, method, duration)
+
+            return response.status
+
         except socket.timeout, e:
 
-            self.protector.save_stats_timeout(self.tsdb_query, 20)
-            self.send_error(httplib.SERVICE_UNAVAILABLE, "Query timed out. Configured timeout: {}s".format(20))
+            respTime = time.time()
+            duration = respTime - startTime
+
+            self.protector.save_stats_timeout(self.tsdb_query, duration)
+            self.protector.TSDB_REQUEST_LATENCY.labels(httplib.GATEWAY_TIMEOUT).observe(duration)
+            self.send_error(httplib.GATEWAY_TIMEOUT, "Query timed out. Configured timeout: {}s".format(20))
+
+            return httplib.GATEWAY_TIMEOUT
 
         except Exception as e:
+
+            respTime = time.time()
+            duration = respTime - startTime
+
             #logging.error("{}".format(traceback.format_exc()))
             err = "Invalid response from backend: '{}'".format(e)
             logging.debug(err)
-            self.send_error(httplib.SERVICE_UNAVAILABLE, err)
+            self.protector.TSDB_REQUEST_LATENCY.labels(httplib.BAD_GATEWAY).observe(duration)
+            self.send_error(httplib.BAD_GATEWAY, err)
+
+            return httplib.BAD_GATEWAY
 
     def _process_response(self, payload, encoding, duration):
         """

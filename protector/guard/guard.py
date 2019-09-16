@@ -22,8 +22,6 @@ class Guard(object):
         self.rules = import_rules(rule_names)
 
     def is_allowed(self, query):
-        if not query:
-            return Err({"msg": "Empty query !?"})
 
         for name, rule in self.rules.items():
             check = rule.check(query)
