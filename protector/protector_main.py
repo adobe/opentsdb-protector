@@ -45,30 +45,21 @@ class Protector(object):
             port=db_config['redis']['port'],
             password=db_config['redis']['password'])
 
-        self.REQUESTS_COUNT = Counter('requests_total', 'Total number of requests')
-        self.REQUESTS_BLOCKED = Counter('requests_blocked', 'Total number of blocked requests')
-        self.REQUESTS_BLACKLISTED_MATCHED = Counter('requests_blacklisted_matched',
-                                                    'Total number of blacklisted matched requests')
-        self.REQUESTS_WHITELISTED_MATCHED = Counter('requests_whitelisted_matched',
-                                                    'Total number of whitelisted matched requests')
+        self.REQUESTS_COUNT = Counter('requests_total', 'Total number of requests', ['method', 'path', 'return_code'])
+        self.REQUESTS_BLOCKED = Counter('requests_blocked', 'Total number of blocked requests. Tags: safe mode, matched rule', ['safe_mode', 'rule'])
+        self.REQUESTS_WHITELISTED_MATCHED = Counter('requests_whitelisted_matched', 'Total number of whitelisted matched requests')
 
-        self.EXCEED_TIME_LIMIT_COUNT = Counter('exceed_time_limit_count', 'exceed_time_limit rule match count')
-        self.QUERY_NO_AGGREGATOR_COUNT = Counter('query_no_aggregator_count', 'query_no_aggregator rule match count')
-        self.QUERY_NO_TAGS_FILTERS_COUNT = Counter('query_no_tags_filters_count',
-                                                   'query_no_tags_filters rule match count')
-        self.QUERY_OLD_DATA_COUNT = Counter('query_old_data_count', 'query_old_data rule match count')
-        self.TOO_MANY_DATAPOINTS_COUNT = Counter('too_many_datapoints_count', 'too_many_datapoints rule match count')
-        self.EXCEED_FREQUENCY_COUNT = Counter('exceed_frequency_count', 'exceed_frequency rule match count')
+        self.SAFE_MODE_STATUS = Gauge('safe_mode', 'Safe Mode Status')
+        self.SAFE_MODE_STATUS.set(int(self.safe_mode))
 
         self.DATAPOINTS_SERVED_COUNT = Counter('datapoints_served_count', 'datapoints served count')
-
-        self.TSDB_REQUEST_LATENCY = Histogram('tsdb_request_latency_seconds', 'OpenTSDB Requests latency histogram')
+        self.TSDB_REQUEST_LATENCY = Histogram('tsdb_request_latency_seconds', 'OpenTSDB Requests latency histogram', ['http_code'])
 
     def check(self, query):
 
         # Skip check if Safe mode is on
-        if self.safe_mode:
-            return Ok(True)
+        #if self.safe_mode:
+        #    return Ok(True)
 
         logging.debug("Checking OpenTSDBQuery: {}".format(query.get_id()))
 
@@ -80,8 +71,7 @@ class Protector(object):
                     for qn in qs_names:
                         match = re.match(pattern, qn)
                         if match:
-                            self.REQUESTS_BLACKLISTED_MATCHED.inc()
-                            return Err({"msg": "Metric name: {} is blacklisted".format(qn)})
+                            return Err({"msg": "Metric name: {} is blacklisted".format(qn), "rule": "blacklisted"})
 
             if self.whitelist:
                 all_match = True
@@ -90,10 +80,10 @@ class Protector(object):
                         match = re.match(pattern, qn)
                         all_match = all_match and bool(match)
                         if match:
-                            self.REQUESTS_WHITELISTED_MATCHED.inc()
                             logging.info("Whitelisted metric matched: {}".format(qn))
 
                 if all_match:
+                    self.REQUESTS_WHITELISTED_MATCHED.inc()
                     return Ok(True)
 
             self.load_stats(query)
