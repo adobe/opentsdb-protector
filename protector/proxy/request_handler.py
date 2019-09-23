@@ -123,7 +123,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             # Check the payload against the Protector rule set
             result = self.protector.check(self.tsdb_query)
             if not result.is_ok():
-                self.protector.REQUESTS_BLOCKED.labels(self.protector.safe_mode, result.value["rule"])
+                self.protector.REQUESTS_BLOCKED.labels(self.protector.safe_mode, result.value["rule"]).inc()
 
                 if not self.protector.safe_mode:
                     logging.warning("OpenTSDBQuery blocked: %s. Reason: %s", self.tsdb_query.get_id(), result.value["msg"])
