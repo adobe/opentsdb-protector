@@ -19,12 +19,102 @@
   "links": [],
   "panels": [
     {
+      "cacheTimeout": null,
+      "colorBackground": false,
+      "colorValue": true,
+      "colors": [
+        "#299c46",
+        "rgba(237, 129, 40, 0.89)",
+        "#d44a3a"
+      ],
+      "datasource": "Prometheus",
+      "format": "none",
+      "gauge": {
+        "maxValue": 100,
+        "minValue": 0,
+        "show": false,
+        "thresholdLabels": false,
+        "thresholdMarkers": true
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "id": 24,
+      "interval": null,
+      "links": [],
+      "mappingType": 1,
+      "mappingTypes": [
+        {
+          "name": "value to text",
+          "value": 1
+        },
+        {
+          "name": "range to text",
+          "value": 2
+        }
+      ],
+      "maxDataPoints": 100,
+      "nullPointMode": "connected",
+      "nullText": null,
+      "options": {},
+      "postfix": "",
+      "postfixFontSize": "50%",
+      "prefix": "",
+      "prefixFontSize": "50%",
+      "rangeMaps": [
+        {
+          "from": "null",
+          "text": "N/A",
+          "to": "null"
+        }
+      ],
+      "sparkline": {
+        "fillColor": "rgba(31, 118, 189, 0.18)",
+        "full": false,
+        "lineColor": "rgb(31, 120, 193)",
+        "show": false
+      },
+      "tableColumn": "",
+      "targets": [
+        {
+          "expr": "sum(safe_mode)/3",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "thresholds": "",
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Safe Mode",
+      "transparent": true,
+      "type": "singlestat",
+      "valueFontSize": "80%",
+      "valueMaps": [
+        {
+          "op": "=",
+          "text": "OFF",
+          "value": "0"
+        },
+        {
+          "op": "=",
+          "text": "ON",
+          "value": "1"
+        }
+      ],
+      "valueName": "avg"
+    },
+    {
       "collapsed": true,
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 2
       },
       "id": 16,
       "panels": [
@@ -35,11 +125,12 @@
           "dashes": false,
           "datasource": "Prometheus",
           "fill": 1,
+          "fillGradient": 0,
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 1
+            "y": 3
           },
           "id": 14,
           "legend": {
@@ -55,17 +146,21 @@
           "linewidth": 1,
           "links": [],
           "nullPointMode": "null",
+          "options": {
+            "dataLinks": []
+          },
           "paceLength": 10,
           "percentage": false,
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
           "seriesOverrides": [],
+          "spaceLength": 10,
           "stack": false,
           "steppedLine": false,
           "targets": [
             {
-              "expr": "process_virtual_memory_bytes{job=\"protector\"}",
+              "expr": "process_virtual_memory_bytes{job=\"protector-dev\"}",
               "format": "time_series",
               "intervalFactor": 1,
               "refId": "A"
@@ -119,11 +214,12 @@
           "dashes": false,
           "datasource": "Prometheus",
           "fill": 1,
+          "fillGradient": 0,
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 1
+            "y": 3
           },
           "id": 12,
           "legend": {
@@ -139,17 +235,21 @@
           "linewidth": 1,
           "links": [],
           "nullPointMode": "null",
+          "options": {
+            "dataLinks": []
+          },
           "paceLength": 10,
           "percentage": false,
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
           "seriesOverrides": [],
+          "spaceLength": 10,
           "stack": false,
           "steppedLine": false,
           "targets": [
             {
-              "expr": "process_resident_memory_bytes{job=\"protector\"}",
+              "expr": "process_resident_memory_bytes{job=\"protector-dev\"}",
               "format": "time_series",
               "intervalFactor": 1,
               "refId": "A"
@@ -202,11 +302,12 @@
     },
     {
       "collapsed": false,
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 1
+        "y": 3
       },
       "id": 10,
       "panels": [],
@@ -219,34 +320,39 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 2
+        "y": 4
       },
       "id": 4,
       "links": [],
       "options": {
-        "maxValue": 100,
-        "minValue": 0,
+        "fieldOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "defaults": {
+            "decimals": null,
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": [
+              {
+                "color": "#7EB26D",
+                "value": null
+              }
+            ],
+            "unit": "none"
+          },
+          "override": {},
+          "values": false
+        },
+        "orientation": "auto",
         "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "thresholds": [
-          {
-            "color": "#7EB26D",
-            "index": 0,
-            "value": null
-          }
-        ],
-        "valueMappings": [],
-        "valueOptions": {
-          "decimals": null,
-          "prefix": "",
-          "stat": "avg",
-          "suffix": "",
-          "unit": "none"
-        }
+        "showThresholdMarkers": true
       },
+      "pluginVersion": "6.4.0",
       "targets": [
         {
-          "expr": "(sum(requests_blocked_total)/sum(requests_total)) * 100",
+          "expr": "(sum(requests_blocked_total{job=\"protector-dev\"})/sum(requests_total{job=\"protector-dev\"})) * 100",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -256,7 +362,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Rejected percent",
+      "title": "Rejected percent (LIVE MODE only)",
       "type": "gauge"
     },
     {
@@ -274,7 +380,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 2
+        "y": 4
       },
       "id": 6,
       "interval": null,
@@ -287,148 +393,67 @@
       "links": [],
       "maxDataPoints": 3,
       "nullPointMode": "connected",
+      "options": {},
       "pieType": "pie",
       "strokeWidth": 1,
       "targets": [
         {
-          "expr": "SUM(too_many_datapoints_count_total)",
+          "expr": "SUM(requests_blocked_total{job=\"protector-dev\"}) by (rule)",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
-        },
-        {
-          "expr": "SUM(exceed_time_limit_count_total)",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "refId": "B"
-        },
-        {
-          "expr": "SUM(query_no_aggregator_count_total)",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "refId": "C"
-        },
-        {
-          "expr": "SUM(query_no_tags_filters_count_total)",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "refId": "D"
-        },
-        {
-          "expr": "SUM(exceed_frequency_count_total)",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "refId": "E"
-        },
-        {
-          "expr": "SUM(query_old_data_count_total)",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "refId": "F"
-        },
-        {
-          "expr": "SUM(requests_blacklisted_matched_total)",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "refId": "G"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Rejected by rule",
+      "title": "Matched by rule",
       "type": "grafana-piechart-panel",
       "valueName": "current"
     },
     {
       "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
+      "breakPoint": "50%",
+      "cacheTimeout": null,
+      "combine": {
+        "label": "Others",
+        "threshold": 0
+      },
       "datasource": "Prometheus",
-      "fill": 1,
+      "fontSize": "80%",
+      "format": "short",
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 10
+        "y": 12
       },
       "id": 2,
+      "interval": null,
       "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
+        "percentage": true,
         "show": true,
-        "total": false,
-        "values": false
+        "values": true
       },
-      "lines": true,
-      "linewidth": 1,
+      "legendType": "Under graph",
       "links": [],
-      "nullPointMode": "null",
-      "paceLength": 10,
-      "percentage": false,
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "stack": false,
-      "steppedLine": false,
+      "maxDataPoints": 3,
+      "nullPointMode": "connected",
+      "options": {},
+      "pieType": "pie",
+      "strokeWidth": 1,
       "targets": [
         {
-          "expr": "sum(requests_total)",
-          "format": "time_series",
-          "instant": false,
-          "intervalFactor": 1,
-          "refId": "A"
-        },
-        {
-          "expr": "sum(requests_blocked_total)",
+          "expr": "sum(requests_total{job=\"protector-dev\", path=\"/api/query\"}) by (return_code)",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "B"
         }
       ],
-      "thresholds": [],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
-      "title": "Protector req total / blocked",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": "0",
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "title": "/api/query by status",
+      "type": "grafana-piechart-panel",
+      "valueName": "current"
     },
     {
       "aliasColors": {},
@@ -437,41 +462,47 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 10
+        "y": 12
       },
       "id": 8,
       "legend": {
         "alignAsTable": false,
         "avg": false,
-        "current": false,
+        "current": true,
         "max": false,
         "min": false,
         "rightSide": false,
-        "show": false,
+        "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": false,
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
       "paceLength": 10,
       "percentage": false,
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
       "seriesOverrides": [],
+      "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(increase(tsdb_request_latency_seconds_bucket[10m])) by (le)",
+          "expr": "sum(increase(tsdb_request_latency_seconds_bucket{job=\"protector-dev\"}[10m])) by (le)",
           "format": "heatmap",
           "intervalFactor": 1,
+          "legendFormat": "{{le}}",
           "refId": "A"
         }
       ],
@@ -479,7 +510,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "OpenTSDB latencies histogram / 10min",
+      "title": "OpenTSDB latencies histogram / increase per 10min",
       "tooltip": {
         "shared": false,
         "sort": 0,
@@ -492,7 +523,7 @@
         "name": null,
         "show": true,
         "values": [
-          "total"
+          "current"
         ]
       },
       "yaxes": [
@@ -525,11 +556,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 18
+        "y": 20
       },
       "id": 18,
       "legend": {
@@ -545,20 +577,25 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
       "paceLength": 10,
       "percentage": false,
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
       "seriesOverrides": [],
+      "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
       "targets": [
         {
-          "expr": "increase(requests_total[10m])",
+          "expr": "increase(requests_total{job=\"protector-dev\"}[10m])",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
+          "legendFormat": "{{instance}} [{{return_code}}]",
           "refId": "A"
         }
       ],
@@ -610,11 +647,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 18
+        "y": 20
       },
       "id": 20,
       "legend": {
@@ -630,19 +668,24 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
       "paceLength": 10,
       "percentage": false,
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
       "seriesOverrides": [],
+      "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(increase(tsdb_request_latency_seconds_bucket[10m])) by (le)",
+          "expr": "sum(increase(tsdb_request_latency_seconds_bucket{job=\"protector-dev\"}[10m])) by (le)",
           "format": "heatmap",
           "intervalFactor": 1,
+          "legendFormat": "{{le}}",
           "refId": "A"
         }
       ],
@@ -694,11 +737,12 @@
       "dashes": false,
       "datasource": "Prometheus",
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 26
+        "y": 28
       },
       "id": 22,
       "legend": {
@@ -714,19 +758,24 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
       "paceLength": 10,
       "percentage": false,
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
       "seriesOverrides": [],
+      "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
       "targets": [
         {
-          "expr": "increase(datapoints_served_count_total[10m])",
+          "expr": "increase(datapoints_served_count_total{job=\"protector-dev\"}[10m])",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{instance}}",
           "refId": "A"
         }
       ],
@@ -773,14 +822,14 @@
     }
   ],
   "refresh": "1m",
-  "schemaVersion": 18,
+  "schemaVersion": 20,
   "style": "dark",
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-12h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -810,6 +859,6 @@
   },
   "timezone": "",
   "title": "OpenTSDB Protector DEV",
-  "uid": "5Dj11HnZk",
-  "version": 25
+  "uid": "6Dj11HnZk",
+  "version": 1
 }
