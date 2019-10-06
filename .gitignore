@@ -5,6 +5,10 @@ __pycache__/
 # C extensions
 *.so
 
+# OSX
+.DS_Store
+.vscode
+
 # Distribution / packaging
 .Python
 virtualenv
