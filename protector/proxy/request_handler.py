@@ -272,6 +272,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def encode_content_body(text, encoding):
+        if not encoding:
+            return text
         if encoding == 'identity':
             return text
         if encoding in ('gzip', 'x-gzip'):
@@ -285,6 +287,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def decode_content_body(data, encoding):
+        if not encoding:
+            return data
         if encoding == 'identity':
             return data
         if encoding in ('gzip', 'x-gzip'):
