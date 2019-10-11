@@ -196,7 +196,7 @@ class Protector(object):
             'timestamp': current_time
         }
 
-        self.db.rpush(key, json.dumps(stats))
+        self.db.hmset(key, stats)
 
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
 
