@@ -76,7 +76,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         message.
 
         """
-        if self.headers:
+        if not getattr(self, "headers", None):
             xff = self.headers.getheader('X-Forwarded-For', '-')
             xgo = self.headers.getheader('X-Grafana-Org-Id', '-')
             ua = self.headers.getheader('User-Agent', '-')
@@ -183,7 +183,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             respTime = time.time()
             duration = respTime - startTime
 
-            self.protector.save_stats_timeout(self.tsdb_query, duration)
+            if method == "POST":
+                self.protector.save_stats_timeout(self.tsdb_query, duration)
+
             self.protector.TSDB_REQUEST_LATENCY.labels(httplib.GATEWAY_TIMEOUT).observe(duration)
             self.send_error(httplib.GATEWAY_TIMEOUT, "Query timed out. Configured timeout: {}s".format(20))
 

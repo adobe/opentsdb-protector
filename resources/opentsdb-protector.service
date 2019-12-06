@@ -1,0 +1,15 @@
+[Unit]
+Description=OpenTSDB Protector
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=root
+Group=root
+Restart=always
+RestartSec=5s
+ExecStart=/usr/bin/opentsdb-protector -c /etc/opentsdb-protector.yaml start
+ExecStop=/usr/bin/opentsdb-protector -c /etc/opentsdb-protector.yaml stop
+
+[Install]
+WantedBy=multi-user.target
