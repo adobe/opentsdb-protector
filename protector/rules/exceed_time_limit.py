@@ -10,16 +10,18 @@
 
 from result import Ok, Err
 from protector.rules.rule import Rule
+import time
 
 
 class RuleChecker(Rule):
 
-    def __init__(self, conf_duration):
-        self.max_duration = conf_duration
+    def __init__(self, conf):
+        self.max_duration = conf['limit']
+        self.throttle_duration = conf['throttle']
 
     @staticmethod
     def description():
-        return "Prevent lengthy queries"
+        return "Throttle lengthy queries"
 
     @staticmethod
     def reason():
@@ -31,8 +33,17 @@ class RuleChecker(Rule):
         :param query OpenTSDBQuery
         """
         stats = query.get_stats()
+        current_time = int(round(time.time()))
+
         if stats:
             duration = float(stats.get('duration', 0))
+            last_occurence = int(stats.get('timestamp', 0))
+
             if self.max_duration <= duration:
-                return Err("Query duration exceeded: {}s Limit: {}s".format(duration, self.max_duration))
+                elapsed = current_time - last_occurence
+
+                if elapsed < self.throttle_duration:
+                    remaining = self.throttle_duration - elapsed
+                    return Err("Query duration exceeded: {}s Limit: {}s Throttling ends in {}s".format(duration, self.max_duration, remaining))
+
         return Ok(True)

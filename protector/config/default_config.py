@@ -21,7 +21,10 @@ DEFAULT_CONFIG = {
         'query_no_aggregator': None,
         'too_many_datapoints': 10000,
         'query_old_data': 90,
-        'exceed_time_limit': 20,
+        'exceed_time_limit': {
+            'limit': 20,
+            'throttle': 300
+        },
         'exceed_frequency': 30
     },
     # Queries for series names matching one of
