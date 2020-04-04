@@ -17,7 +17,9 @@ rules:
   query_no_tags_filters:
   query_no_aggregator:
   too_many_datapoints: 10000 # number
-  exceed_time_limit:   20    # seconds
+  exceed_time_limit:
+    limit:    20    # query duration limit in seconds
+    throttle: 300   # throttle time in seconds
   query_old_data:      90    # days
   exceed_frequency:    30    # seconds
 # You can blacklist metric names

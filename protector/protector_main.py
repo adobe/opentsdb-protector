@@ -57,10 +57,6 @@ class Protector(object):
 
     def check(self, query):
 
-        # Skip check if Safe mode is on
-        #if self.safe_mode:
-        #    return Ok(True)
-
         logging.debug("Checking OpenTSDBQuery: {}".format(query.get_id()))
 
         if query:

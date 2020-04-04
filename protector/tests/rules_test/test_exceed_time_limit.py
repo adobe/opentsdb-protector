@@ -12,13 +12,16 @@ import unittest
 
 from protector.rules import exceed_time_limit
 from protector.query.query import OpenTSDBQuery
+from protector.config import default_config
+import time
 
 
 class TestQueryExceedFrequency(unittest.TestCase):
 
     def setUp(self):
 
-        self.exceed_time_limit = exceed_time_limit.RuleChecker(20)
+        config = {'limit': 20, 'throttle': 300}
+        self.exceed_time_limit = exceed_time_limit.RuleChecker(config)
 
         self.payload1 = """
                         {
@@ -85,16 +88,23 @@ class TestQueryExceedFrequency(unittest.TestCase):
 
     def test_below(self):
 
+        current_time = int(round(time.time()))
+
         q = OpenTSDBQuery(self.payload1)
-        q.set_stats({'duration': 1.5})
+        q.set_stats({'duration': 1.5, 'timestamp': current_time - 1})
 
         self.assertTrue(self.exceed_time_limit.check(q).is_ok())
 
     def test_above(self):
 
-        q = OpenTSDBQuery(self.payload2)
-        q.set_stats({'duration': 20})
+        current_time = int(round(time.time()))
 
+        q = OpenTSDBQuery(self.payload2)
+        q.set_stats({'duration': 20, 'timestamp': current_time - 310})
+
+        self.assertTrue(self.exceed_time_limit.check(q).is_ok())
+
+        q.set_stats({'duration': 20, 'timestamp': current_time - 210})
         self.assertFalse(self.exceed_time_limit.check(q).is_ok())
 
     def test_none(self):

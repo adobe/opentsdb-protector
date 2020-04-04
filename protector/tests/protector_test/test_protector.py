@@ -115,7 +115,7 @@ class TestProtector(unittest.TestCase):
         p.blacklist = ["^releases$", "^mymetric"]
         p.safe_mode = True
 
-        self.assertTrue(p.check(OpenTSDBQuery(self.payload4)).is_ok())
+        self.assertFalse(p.check(OpenTSDBQuery(self.payload4)).is_ok())
 
         p.safe_mode = False
         self.assertFalse(p.check(OpenTSDBQuery(self.payload4)).is_ok())
