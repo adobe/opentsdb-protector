@@ -9,6 +9,7 @@ safe_mode: False
 verbose: 2
 db:
   type: redis
+  expire: 604800 # data ttl 1 week
   redis:
     host: localhost
     port: 6379

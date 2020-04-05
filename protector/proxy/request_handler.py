@@ -15,6 +15,7 @@ import logging
 import socket
 import time
 import zlib
+import re
 # import traceback
 from BaseHTTPServer import BaseHTTPRequestHandler
 from StringIO import StringIO
@@ -89,7 +90,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
 
+        top = re.match("^/top/(duration|dps)$", self.path)
+
         if self.path == "/metrics":
+
             data = generate_latest()
 
             self.send_response(200)
@@ -98,6 +102,18 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             self.send_header('Connection', 'close')
             self.end_headers()
             self.wfile.write(data)
+
+        elif top:
+
+            data = self.protector.get_top(top.group(1))
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header('Connection', 'close')
+            self.end_headers()
+            self.wfile.write(data)
+
         else:
             self.headers['Host'] = self.backend_netloc
             self.filter_headers(self.headers)

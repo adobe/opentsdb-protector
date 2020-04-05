@@ -26,6 +26,7 @@ class Protector(object):
     """
 
     db = None
+    ttl = 0
 
     def __init__(self, rules, blacklist=[], whitelist=[], db_config={}, safe_mode=False):
         """
@@ -39,6 +40,9 @@ class Protector(object):
         self.blacklist = blacklist
         self.whitelist = whitelist
         self.safe_mode = safe_mode
+
+        if db_config.get('expire', 0) > 0:
+            self.ttl = db_config['expire']
 
         self.db = redis.Redis(
             host=db_config['redis']['host'],
@@ -109,13 +113,18 @@ class Protector(object):
         key_prefix = query.get_id()
 
         if not self.db.exists("{}_{}".format(key_prefix, 'query')):
-            self.db.set("{}_{}".format(key_prefix, 'query'), json.dumps(query.q))
+            self.db.set("{}_{}".format(key_prefix, 'query'), json.dumps(query.q), ex=(self.ttl or None))
 
         sum_dp = 0
         for item in stats:
             item.update({'timestamp': current_time, 'start': query.get_start_timestamp(), 'end': query.get_end()})
             self.db.rpush("{}_{}".format(key_prefix, 'stats'), json.dumps(item))
             sum_dp += item['emittedDPs']
+
+        # Set TTL if supplied
+        if self.ttl:
+            if self.db.ttl("{}_{}".format(key_prefix, 'stats')) == -1:
+                self.db.expire("{}_{}".format(key_prefix, 'stats'), self.ttl)
 
         self.DATAPOINTS_SERVED_COUNT.inc(sum_dp)
 
@@ -129,6 +138,11 @@ class Protector(object):
             global_stats['first_occurrence'] = current_time
 
         self.db.hmset("{}_{}".format(key_prefix, interval), global_stats)
+
+        # Set TTL if supplied
+        if self.ttl:
+            if self.db.ttl("{}_{}".format(key_prefix, interval)) == -1:
+                self.db.expire("{}_{}".format(key_prefix, interval), self.ttl)
 
         logging.info("[{}] emittedDPs: {}".format(query.get_id(), sum_dp))
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
@@ -146,7 +160,8 @@ class Protector(object):
 
         if not sc:
             self.db.zadd(top_duration_key, {zkey: duration})
-            self.db.expire(top_duration_key, 3600 * 24 * 7)  # expire after 1 week
+            if self.ttl:
+                self.db.expire(top_duration_key, self.ttl)
         else:
             if float(duration) > float(sc):
                 self.db.zadd(top_duration_key, {zkey: duration})
@@ -160,13 +175,13 @@ class Protector(object):
 
         if not sc:
             self.db.zadd(top_dps_key, {zkey: sum_dp})
-            self.db.expire(top_dps_key, 3600 * 24 * 7)  # expire after 1 week
+            if self.ttl:
+                self.db.expire(top_dps_key, self.ttl)
         else:
             if int(sum_dp) > int(sc):
                 self.db.zadd(top_dps_key, {zkey: sum_dp})
         ###
 
-        # self.db.bgsave() - Unsupported without persistence layer in Azure
         logging.info("[{}] stats saved".format(query.get_id()))
 
         now_time = int(round(time.time() * 1000))
@@ -194,10 +209,12 @@ class Protector(object):
 
         self.db.hmset(key, stats)
 
+        # Set TTL if supplied
+        if self.ttl:
+            if self.db.ttl(key) == -1:
+                self.db.expire(key, self.ttl)
+
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
-
-        # self.db.bgsave() - Unsupported without persistence layer in Azure
-
         logging.info("[{}] stats saved".format(query.get_id()))
 
     def load_stats(self, query):
@@ -217,3 +234,30 @@ class Protector(object):
             logging.info("[{}] Found previous stats for this interval: {} minutes".format(query.get_id(), interval))
             query.set_stats(self.db.hgetall(key))
 
+    def get_top(self, toptype="duration"):
+
+        if (toptype != "duration" and toptype != "dps"):
+            logging.error("Unsupported toptype: {}".format(toptype))
+            return
+
+        try:
+            self.db.ping()
+        except Exception as e:
+            logging.error("Redis server connection issue: {}".format(e))
+            return
+
+        # Get current day of the month and hour of the day
+        d = dt.datetime.now()
+        hour = d.hour
+        day = d.day
+
+        data = {}
+        # Dump all hourly tops for today
+        while hour >= 0:
+            # Top
+            top_key = "top_{}_{}_{}".format(toptype, day, hour)
+            sc = self.db.zrange(top_key, 0, -1, True, True)
+            data[hour] = sc
+            hour = hour - 1
+
+        return json.dumps(data)
