@@ -77,16 +77,18 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         message.
 
         """
-        if not getattr(self, "headers", None):
+        xff = '-'
+        xgo = '-'
+        ua = '-'
+        try:
             xff = self.headers.getheader('X-Forwarded-For', '-')
             xgo = self.headers.getheader('X-Grafana-Org-Id', '-')
             ua = self.headers.getheader('User-Agent', '-')
+        except AttributeError as e:
+            logging.warning("Malformed/missing request header. Requestline: %s" % self.raw_requestline)
 
-            logging.info("%s - - [%s] %s [X-Forwarded-For: %s, X-Grafana-Org-Id: %s, User-Agent: %s]" %
-                         (self.client_address[0], self.log_date_time_string(), format % args, xff, xgo, ua))
-        else:
-            logging.info("%s - - [%s] %s" %
-                         (self.client_address[0], self.log_date_time_string(), format % args))
+        logging.info("%s - - [%s] %s [X-Forwarded-For: %s, X-Grafana-Org-Id: %s, User-Agent: %s]" %
+                        (self.client_address[0], self.log_date_time_string(), format % args, xff, xgo, ua))
 
     def do_GET(self):
 
@@ -130,7 +132,13 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.headers['Host'] = self.backend_netloc
         self.filter_headers(self.headers)
 
-        # Only process query requests, everything else should pass through
+        # Deny put requests
+        if self.path == "/api/put":
+            logging.warning("OpenTSDBQuery blocked. Reason: %s", "/api/put not allowed")
+            self.send_error(httplib.FORBIDDEN, "/api/put not allowed")
+            return
+
+        # Process query requests
         if self.path == "/api/query":
 
             self.tsdb_query = OpenTSDBQuery(post_data)

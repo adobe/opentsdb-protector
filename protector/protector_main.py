@@ -93,6 +93,50 @@ class Protector(object):
             logging.info(error_msg)
             return Err({"msg": error_msg})
 
+    def set_top_duration(self, key_prefix, interval, duration):
+
+        # Get current day of the month and hour of the day
+        d = dt.datetime.now()
+        hour = d.hour
+        day = d.day
+
+        # Top durations
+        top_duration_key = "top_duration_{}_{}".format(day, hour)
+        zkey = "{}_{}".format(key_prefix, interval)
+
+        sc = self.db.zscore(top_duration_key, zkey)
+
+        if not sc:
+            self.db.zadd(top_duration_key, {zkey: duration})
+            if self.ttl:
+                self.db.expire(top_duration_key, self.ttl)
+        else:
+            if float(duration) > float(sc):
+                self.db.zadd(top_duration_key, {zkey: duration})
+        ###
+
+    def set_top_dps(self, key_prefix, interval, sum_dp):
+
+        # Get current day of the month and hour of the day
+        d = dt.datetime.now()
+        hour = d.hour
+        day = d.day
+
+        # Top datapoints
+        top_dps_key = "top_dps_{}_{}".format(day, hour)
+        zkey = "{}_{}".format(key_prefix, interval)
+
+        sc = self.db.zscore(top_dps_key, zkey)
+
+        if not sc:
+            self.db.zadd(top_dps_key, {zkey: sum_dp})
+            if self.ttl:
+                self.db.expire(top_dps_key, self.ttl)
+        else:
+            if int(sum_dp) > int(sc):
+                self.db.zadd(top_dps_key, {zkey: sum_dp})
+        ###
+
     def save_stats(self, query, response, duration):
 
         try:
@@ -147,40 +191,11 @@ class Protector(object):
         logging.info("[{}] emittedDPs: {}".format(query.get_id(), sum_dp))
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
 
-        # Get current day of the month and hour of the day
-        d = dt.datetime.now()
-        hour = d.hour
-        day = d.day
+        # Save duration stats
+        self.set_top_duration(key_prefix, interval, duration)
 
-        # Top durations
-        top_duration_key = "top_duration_{}_{}".format(day, hour)
-        zkey = "{}_{}".format(key_prefix, interval)
-
-        sc = self.db.zscore(top_duration_key, zkey)
-
-        if not sc:
-            self.db.zadd(top_duration_key, {zkey: duration})
-            if self.ttl:
-                self.db.expire(top_duration_key, self.ttl)
-        else:
-            if float(duration) > float(sc):
-                self.db.zadd(top_duration_key, {zkey: duration})
-        ###
-
-        # Top datapoints
-        top_dps_key = "top_dps_{}_{}".format(day, hour)
-        zkey = "{}_{}".format(key_prefix, interval)
-
-        sc = self.db.zscore(top_dps_key, zkey)
-
-        if not sc:
-            self.db.zadd(top_dps_key, {zkey: sum_dp})
-            if self.ttl:
-                self.db.expire(top_dps_key, self.ttl)
-        else:
-            if int(sum_dp) > int(sc):
-                self.db.zadd(top_dps_key, {zkey: sum_dp})
-        ###
+        # Save dps stats
+        self.set_top_dps(key_prefix, interval, sum_dp)
 
         logging.info("[{}] stats saved".format(query.get_id()))
 
@@ -216,6 +231,10 @@ class Protector(object):
 
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
         logging.info("[{}] stats saved".format(query.get_id()))
+
+        # Save duration stats
+        self.set_top_duration(query.get_id(), interval, duration)
+
 
     def load_stats(self, query):
 
