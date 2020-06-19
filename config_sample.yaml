@@ -23,14 +23,14 @@ rules:
     throttle: 300   # throttle time in seconds
   query_old_data:      90    # days
   exceed_frequency:    30    # seconds
-# You can blacklist metric names
+# You can create a blockedlist for metric names
 # Queries matching these patterns will be blocked
-blacklist:
+blockedlist:
   - bad\.metric
   - ^regex_metric$
   - ^application_release$
   - .*java.*boot.*version.*
-# You can whitelist metric names
-# Queries matching these patterns will skip the filters (if not rejected by the blacklist!)
-whitelist:
+# You can create an allowedlist for metric names
+# Queries matching these patterns will skip the filters (if not rejected by the blockedlist!)
+allowedlist:
   - test\.e2e\.

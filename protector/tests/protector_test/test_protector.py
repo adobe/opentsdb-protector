@@ -99,20 +99,20 @@ class TestProtector(unittest.TestCase):
                         }
                         """
 
-    def test_blacklist(self):
+    def test_blockedlist(self):
 
-        p.blacklist = ["^releases$", "^mymetric\.", ".*java.*boot.*version.*"]
+        p.blockedlist = ["^releases$", "^mymetric\.", ".*java.*boot.*version.*"]
 
         self.assertFalse(p.check(OpenTSDBQuery(self.payload1)).is_ok())
         self.assertTrue(p.check(OpenTSDBQuery(self.payload2)).is_ok())
         self.assertTrue(p.check(OpenTSDBQuery(self.payload3)).is_ok())
 
-        p.blacklist = []
+        p.blockedlist = []
         self.assertTrue(p.check(OpenTSDBQuery(self.payload1)).is_ok())
 
     def test_safe_mode(self):
 
-        p.blacklist = ["^releases$", "^mymetric"]
+        p.blockedlist = ["^releases$", "^mymetric"]
         p.safe_mode = True
 
         self.assertFalse(p.check(OpenTSDBQuery(self.payload4)).is_ok())
