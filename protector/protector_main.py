@@ -28,17 +28,18 @@ class Protector(object):
     db = None
     ttl = 0
 
-    def __init__(self, rules, blacklist=[], whitelist=[], db_config={}, safe_mode=False):
+    def __init__(self, rules, blockedlist=[], allowedlist=[], db_config={}, safe_mode=False):
         """
         :param rules: A list of rules to evaluate
-        :param blacklist: A list of metric names to blacklist
+        :param blockedlist: A list of blocked metric names
+        :param allowedlist: A list of allowed metric names
         :param safe_mode: If set to True, allow the query in case it can not be parsed
         :return:
         """
         self.guard = Guard(rules)
 
-        self.blacklist = blacklist
-        self.whitelist = whitelist
+        self.blockedlist = blockedlist
+        self.allowedlist = allowedlist
         self.safe_mode = safe_mode
 
         if db_config.get('expire', 0) > 0:
@@ -51,7 +52,7 @@ class Protector(object):
 
         self.REQUESTS_COUNT = Counter('requests_total', 'Total number of requests', ['method', 'path', 'return_code'])
         self.REQUESTS_BLOCKED = Counter('requests_blocked', 'Total number of blocked requests. Tags: safe mode, matched rule', ['safe_mode', 'rule'])
-        self.REQUESTS_WHITELISTED_MATCHED = Counter('requests_whitelisted_matched', 'Total number of whitelisted matched requests')
+        self.REQUESTS_ALLOWEDLIST_MATCHED = Counter('requests_allowedlist_matched', 'Total number of allowedlist matched requests')
 
         self.SAFE_MODE_STATUS = Gauge('safe_mode', 'Safe Mode Status')
         self.SAFE_MODE_STATUS.set(int(self.safe_mode))
@@ -66,24 +67,24 @@ class Protector(object):
         if query:
             qs_names = query.get_metric_names()
 
-            if self.blacklist:
-                for pattern in self.blacklist:
+            if self.blockedlist:
+                for pattern in self.blockedlist:
                     for qn in qs_names:
                         match = re.match(pattern, qn)
                         if match:
-                            return Err({"msg": "Metric name: {} is blacklisted".format(qn), "rule": "blacklisted"})
+                            return Err({"msg": "Metric name: {} is blocked".format(qn), "rule": "blockedlist"})
 
-            if self.whitelist:
+            if self.allowedlist:
                 all_match = True
-                for pattern in self.whitelist:
+                for pattern in self.allowedlist:
                     for qn in qs_names:
                         match = re.match(pattern, qn)
                         all_match = all_match and bool(match)
                         if match:
-                            logging.info("Whitelisted metric matched: {}".format(qn))
+                            logging.info("Allowedlist metric matched: {}".format(qn))
 
                 if all_match:
-                    self.REQUESTS_WHITELISTED_MATCHED.inc()
+                    self.REQUESTS_ALLOWEDLIST_MATCHED.inc()
                     return Ok(True)
 
             self.load_stats(query)

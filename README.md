@@ -13,7 +13,7 @@ Goals:
 
 * Prevent aggressive, poorly constructed or expensive queries to OpenTSDB that could overload the cluster.
 * Offer a set of filter rules and an internal state to match, log, filter and analyze queries.
-* Offer blacklisting, whitelisting and passthrough.
+* Enforce blocked lists, allowed lists and passthrough.
 * Return error messages in Grafana error format.
 
 opentsdb-protector acts as a proxy between the query source (e.g. Grafana) and OpenTSDB.\
@@ -59,13 +59,13 @@ reject the query based on the last query execution time. A max frequency can be 
 Queries that take too long to complete can be a cause for concern. You can filter them using this rule while you investigate.\
 This is a stateful filter, the application will reject the query based on the previous query duration.
 
-#### Blacklisting
+#### Blockedlist
 
-You can blacklist series names in the config. Queries for metric names matching one of the patterns will be rejected.
+You can create a blockedlist for series names in the config. Queries for metric names matching one of the patterns will be rejected.
 
-#### Whitelisting
+#### Allowedlist
 
-You can whitelist series names in the config. If the metric name has not been blacklisted above it will be allowed to pass through without any filtering.
+You can create an allowedlist for series names in the config. If the metric name is not already on the blockedlist, it will be allowed to pass through without any filtering.
 
 #### Safe Mode
 

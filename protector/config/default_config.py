@@ -29,10 +29,10 @@ DEFAULT_CONFIG = {
     },
     # Queries for series names matching one of
     # the following patterns will be rejected
-    'blacklist': [],
+    'blockedlist': [],
     # Queries for series names matching one of
-    # the following patterns will skip the filters (if not rejected by the blacklist!)
-    'whitelist': [],
+    # the following patterns will skip the filters (if not rejected by the blockedlist!)
+    'allowedlist': [],
     # Run in foreground?
     'foreground': False,
     # Default PID file location
