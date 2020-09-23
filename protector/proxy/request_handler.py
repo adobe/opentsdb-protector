@@ -16,7 +16,6 @@ import socket
 import time
 import zlib
 import re
-# import traceback
 from BaseHTTPServer import BaseHTTPRequestHandler
 from StringIO import StringIO
 
@@ -85,7 +84,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             xgo = self.headers.getheader('X-Grafana-Org-Id', '-')
             ua = self.headers.getheader('User-Agent', '-')
         except AttributeError as e:
-            logging.warning("Malformed/missing request header. Requestline: %s" % self.raw_requestline)
+            requestline = getattr(self, 'raw_requestline', '-')
+            logging.warning("Malformed/missing request header. Requestline: %s" % requestline)
 
         logging.info("%s - - [%s] %s [X-Forwarded-For: %s, X-Grafana-Org-Id: %s, User-Agent: %s]" %
                         (self.client_address[0], self.log_date_time_string(), format % args, xff, xgo, ua))
@@ -220,7 +220,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             respTime = time.time()
             duration = respTime - startTime
 
-            #logging.error("{}".format(traceback.format_exc()))
             err = "Invalid response from backend: '{}'".format(e)
             logging.debug(err)
             self.protector.TSDB_REQUEST_LATENCY.labels(httplib.BAD_GATEWAY).observe(duration)
@@ -248,10 +247,15 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         # Re-package the error json for Grafana
         j = json.loads(self.decode_content_body(payload, encoding))
         err = j.get('error', None)
+        msg = j.get('message', None)
+
         b = {}
 
         if err:
-            b = {'message': err.get('message', '?'), 'error': err.get('details', '?')}
+            b['error'] = err
+
+        if msg:
+            b['message'] = msg
 
         return self.encode_content_body(json.dumps(b), encoding)
 
