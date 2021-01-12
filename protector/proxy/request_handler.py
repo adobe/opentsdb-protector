@@ -197,7 +197,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             respTime = time.time()
             duration = respTime - startTime
 
-            self.protector.TSDB_REQUEST_LATENCY.labels(response.status).observe(duration)
+            self.protector.TSDB_REQUEST_LATENCY.labels(response.status, path, method).observe(duration)
             self._return_response(response, method, duration)
 
             return response.status
@@ -210,7 +210,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             if method == "POST":
                 self.protector.save_stats_timeout(self.tsdb_query, duration)
 
-            self.protector.TSDB_REQUEST_LATENCY.labels(httplib.GATEWAY_TIMEOUT).observe(duration)
+            self.protector.TSDB_REQUEST_LATENCY.labels(httplib.GATEWAY_TIMEOUT, path, method).observe(duration)
             self.send_error(httplib.GATEWAY_TIMEOUT, "Query timed out. Configured timeout: {}s".format(20))
 
             return httplib.GATEWAY_TIMEOUT
@@ -222,7 +222,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             err = "Invalid response from backend: '{}'".format(e)
             logging.debug(err)
-            self.protector.TSDB_REQUEST_LATENCY.labels(httplib.BAD_GATEWAY).observe(duration)
+            self.protector.TSDB_REQUEST_LATENCY.labels(httplib.BAD_GATEWAY, path, method).observe(duration)
             self.send_error(httplib.BAD_GATEWAY, err)
 
             return httplib.BAD_GATEWAY
