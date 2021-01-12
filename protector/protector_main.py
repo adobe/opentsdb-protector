@@ -58,7 +58,7 @@ class Protector(object):
         self.SAFE_MODE_STATUS.set(int(self.safe_mode))
 
         self.DATAPOINTS_SERVED_COUNT = Counter('datapoints_served_count', 'datapoints served count')
-        self.TSDB_REQUEST_LATENCY = Histogram('tsdb_request_latency_seconds', 'OpenTSDB Requests latency histogram', ['http_code'])
+        self.TSDB_REQUEST_LATENCY = Histogram('tsdb_request_latency_seconds', 'OpenTSDB Requests latency histogram', ['http_code', 'path', 'method'])
 
     def check(self, query):
 
