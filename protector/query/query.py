@@ -149,8 +149,8 @@ class OpenTSDBResponse(object):
         self.r = []
 
         rlist = json.loads(data)
-        if not len(rlist):
-            raise Exception("OpenTSDB response: Empty")
+        #if not len(rlist):
+        #    raise Exception("OpenTSDB response: Empty")
 
         for item in rlist:
             if not item.get("stats", []):
