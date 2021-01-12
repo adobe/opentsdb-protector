@@ -25,7 +25,7 @@ except(IOError, ImportError):
 
 requires = [
     "daemonocle",
-    "psutil==5.6.6",
+    "psutil>=5.6.6",
     "pbr",
     "python-dateutil",
     "PyYAML>=4.2b1",
