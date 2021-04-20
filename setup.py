@@ -24,7 +24,7 @@ except(IOError, ImportError):
     long_description = open('README.md').read()
 
 requires = [
-    "daemonocle",
+    "daemonocle==1.0.1",
     "psutil>=5.6.6",
     "pbr",
     "python-dateutil",
