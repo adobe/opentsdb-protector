@@ -16,8 +16,15 @@ import time
 class RuleChecker(Rule):
 
     def __init__(self, conf):
-        self.max_duration = conf['limit']
-        self.throttle_duration = conf['throttle']
+
+        # adaptive multiplier. ie. 1 means query is throttled by an amount of time equal to previous execution time
+        # preeempts static throttling
+        self.adaptive = conf.get('adaptive', 0)
+
+        # static throttling
+        if not self.adaptive:
+            self.max_duration = conf.get('limit')
+            self.throttle_duration = conf.get('throttle')
 
     @staticmethod
     def description():
@@ -38,12 +45,17 @@ class RuleChecker(Rule):
         if stats:
             duration = float(stats.get('duration', 0))
             last_occurence = int(stats.get('timestamp', 0))
+            elapsed = current_time - last_occurence
 
-            if self.max_duration <= duration:
-                elapsed = current_time - last_occurence
-
-                if elapsed < self.throttle_duration:
-                    remaining = self.throttle_duration - elapsed
-                    return Err("Query duration exceeded: {}s Limit: {}s Throttling ends in {}s".format(duration, self.max_duration, remaining))
+            if self.adaptive:
+                adaptive_throttle_duration = duration * self.adaptive
+                if elapsed < adaptive_throttle_duration:
+                    remaining = adaptive_throttle_duration - elapsed
+                    return Err("Adaptive throttling: {}x Last duration: {}s Throttling ends in {}s".format(self.adaptive, duration, remaining))
+            else:
+                if self.max_duration <= duration:
+                    if elapsed < self.throttle_duration:
+                        remaining = self.throttle_duration - elapsed
+                        return Err("Query duration exceeded: {}s Limit: {}s Throttling ends in {}s".format(duration, self.max_duration, remaining))
 
         return Ok(True)

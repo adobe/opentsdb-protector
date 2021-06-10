@@ -21,6 +21,7 @@ rules:
   exceed_time_limit:
     limit:    20    # query duration limit in seconds
     throttle: 300   # throttle time in seconds
+    adaptive: 1.5   # preempts limit and throttle settings
   query_old_data:      90    # days
   exceed_frequency:    30    # seconds
 # You can create a blockedlist for metric names

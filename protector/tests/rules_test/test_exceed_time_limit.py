@@ -112,3 +112,42 @@ class TestQueryExceedFrequency(unittest.TestCase):
         q = OpenTSDBQuery(self.payload3)
 
         self.assertTrue(self.exceed_time_limit.check(q).is_ok())
+
+class TestAdaptiveThrottling(unittest.TestCase):
+
+    def setUp(self):
+
+        config = {'adaptive': 1.6}
+        self.adaptive_time_limit = exceed_time_limit.RuleChecker(config)
+
+        self.payload1 = """
+                        {
+                          "start": 1530695685,
+                          "queries": [
+                            {
+                              "metric": "mymetric.received.P95",
+                              "aggregator": "max",
+                              "downsample": "20s-max",
+                              "filters": [
+                                {
+                                  "filter": "DEV",
+                                  "groupBy": false,
+                                  "tagk": "environment",
+                                  "type": "iliteral_or"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                        """
+
+    def test_adaptive(self):
+
+        current_time = int(round(time.time()))
+
+        q = OpenTSDBQuery(self.payload1)
+        q.set_stats({'duration': 10, 'timestamp': current_time - 16})
+        self.assertTrue(self.adaptive_time_limit.check(q).is_ok())
+
+        q.set_stats({'duration': 10, 'timestamp': current_time - 15})
+        self.assertFalse(self.adaptive_time_limit.check(q).is_ok())
