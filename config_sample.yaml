@@ -7,6 +7,7 @@ pidfile: /tmp/protector.pid
 logfile: /tmp/protector.log
 safe_mode: False
 verbose: 2
+timeout: 20
 db:
   type: redis
   expire: 604800 # data ttl 1 week

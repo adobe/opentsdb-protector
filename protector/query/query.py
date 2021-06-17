@@ -112,7 +112,7 @@ class OpenTSDBQuery(object):
         return self.id
 
     def _show_stats(self):
-        self.q.update({"showStats": True})
+        self.q.update({"showSummary": True})
 
     def _show_query(self):
         self.q.update({"showQuery": True})
@@ -132,8 +132,8 @@ class OpenTSDBQuery(object):
     def get_stats(self):
         return self.stats
 
-    def to_json(self):
-        return json.dumps(self.q)
+    def to_json(self, sort_keys=False):
+        return json.dumps(self.q, sort_keys=sort_keys)
 
 
 class OpenTSDBResponse(object):
@@ -145,17 +145,25 @@ class OpenTSDBResponse(object):
 
     def __init__(self, data):
 
-        self.stats = []
+        self.stats = {}
         self.r = []
 
         rlist = json.loads(data)
-        #if not len(rlist):
-        #    raise Exception("OpenTSDB response: Empty")
 
         for item in rlist:
-            if not item.get("stats", []):
-                raise Exception("OpenTSDB query stats not present in response!")
-            self.stats.append(item.get('stats'))
+
+            summary = item.get("statsSummary", [])
+            if not summary:
+                #raise Exception("OpenTSDB query stats not present in response!")
+                continue
+
+            filtered = {}
+            for key in summary:
+                if key.startswith('queryIdx_'):
+                    continue
+                filtered[key] = summary[key]
+
+            self.stats = filtered
 
         self.r = rlist
 

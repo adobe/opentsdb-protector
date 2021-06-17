@@ -18,6 +18,7 @@ import zlib
 import re
 from BaseHTTPServer import BaseHTTPRequestHandler
 from StringIO import StringIO
+import traceback
 
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
@@ -29,6 +30,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     protector = None
     backend_address = None
+    timeout = None
 
     def __init__(self, *args, **kwargs):
 
@@ -45,7 +47,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.rfile = None
         self.wfile = None
         self.close_connection = 0
-        #self.timeout = 12
 
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
@@ -98,7 +99,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             data = generate_latest()
 
-            self.send_response(200)
+            self.send_response(httplib.OK)
             self.send_header("Content-Type", CONTENT_TYPE_LATEST)
             self.send_header("Content-Length", str(len(data)))
             self.send_header('Connection', 'close')
@@ -109,7 +110,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             data = self.protector.get_top(top.group(1))
 
-            self.send_response(200)
+            self.send_response(httplib.OK)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
             self.send_header('Connection', 'close')
@@ -192,7 +193,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         startTime = time.time()
 
         try:
-            response = self.http_request.request(backend_url, method=method, body=body, headers=dict(headers))
+            response = self.http_request.request(backend_url, self.timeout, method=method, body=body, headers=dict(headers))
 
             respTime = time.time()
             duration = respTime - startTime
@@ -208,10 +209,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             duration = respTime - startTime
 
             if method == "POST":
-                self.protector.save_stats_timeout(self.tsdb_query, duration)
+                self.protector.save_stats(self.tsdb_query, None, duration, True)
 
             self.protector.TSDB_REQUEST_LATENCY.labels(httplib.GATEWAY_TIMEOUT, path, method).observe(duration)
-            self.send_error(httplib.GATEWAY_TIMEOUT, "Query timed out. Configured timeout: {}s".format(20))
+            self.send_error(httplib.GATEWAY_TIMEOUT, "Query timed out. Configured timeout: {}s".format(self.timeout))
 
             return httplib.GATEWAY_TIMEOUT
 
@@ -238,6 +239,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         except Exception as e:
             err = "Skip: {}".format(e)
             logging.debug(err)
+            logging.error("{}".format(traceback.format_exc()))
 
     def _process_bad_request(self, payload, encoding):
         """

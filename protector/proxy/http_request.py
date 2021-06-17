@@ -14,9 +14,6 @@ import threading
 import socket
 import logging
 
-timeout = 20
-socket.setdefaulttimeout(timeout)
-
 
 class HTTPRequest(object):
     """
@@ -27,7 +24,7 @@ class HTTPRequest(object):
         self.tls = threading.local()
         self.tls.conns = {}
 
-    def request(self, url, body=None, headers=None, timeout=20, max_retries=1, method="GET"):
+    def request(self, url, timeout, body=None, headers=None, max_retries=1, method="GET"):
         if headers is None:
             headers = dict()
 

@@ -184,7 +184,7 @@ class TestRequests(unittest.TestCase):
 
         rq = q.copy()
         rq["showQuery"] = True
-        rq["showStats"] = True
+        rq["showSummary"] = True
 
         data = json.dumps(q)
         dataq = json.dumps(rq)

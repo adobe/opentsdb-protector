@@ -65,6 +65,7 @@ class ProtectorDaemon(object):
         self.handler_class.protocol_version = self.protocol
         self.handler_class.protector = self.protector
         self.handler_class.backend_address = backend_address
+        self.handler_class.timeout = self.config.timeout
 
         httpd = self.server_class(server_address, self.handler_class)
         self.serve_forever(httpd)

@@ -138,7 +138,7 @@ class Protector(object):
                 self.db.zadd(top_dps_key, {zkey: sum_dp})
         ###
 
-    def save_stats(self, query, response, duration):
+    def save_stats(self, query, response, duration, timeout=False):
 
         try:
             self.db.ping()
@@ -146,38 +146,59 @@ class Protector(object):
             logging.error("Redis server connection issue: {}".format(e))
             return
 
+        key_prefix = query.get_id()
+
         time_raw = time.time()
         current_time = int(round(time_raw))
         current_time_milli = int(round(time_raw * 1000))
 
         end_time = query.get_end_timestamp()
-        interval = int((end_time - query.get_start_timestamp()) / 60)
+        start_time = query.get_start_timestamp()
+        interval = int((end_time - start_time) / 60)
+
         logging.info("[{}] start: {}, end: {}, interval: {} minutes".format(query.get_id(), int(query.get_start_timestamp()), end_time, interval))
 
-        stats = response.get_stats()
-        key_prefix = query.get_id()
-
+        # store query
         if not self.db.exists("{}_{}".format(key_prefix, 'query')):
             self.db.set("{}_{}".format(key_prefix, 'query'), json.dumps(query.q), ex=(self.ttl or None))
 
-        sum_dp = 0
-        for item in stats:
-            item.update({'timestamp': current_time, 'start': query.get_start_timestamp(), 'end': query.get_end()})
-            self.db.rpush("{}_{}".format(key_prefix, 'stats'), json.dumps(item))
-            sum_dp += item['emittedDPs']
+        # store query summary stats + meta
+        summary = {}
+        if response is not None:
+            summary = response.get_stats()
+
+        sum_dp = summary.get('emittedDPs', 0)
+
+        # Let's record everything!
+        stats = {
+            'timestamp': current_time, # query execution timestamp
+            'start': int(start_time), # range start
+            'end': query.get_end(), # range end
+            'duration': duration, # time in seconds
+            'summary': summary, # summary stats if any (could be empty for some reason!). time in millis.
+            'timeout': timeout
+        }
+
+        # Push/create stats list
+        self.db.rpush("{}_{}".format(key_prefix, 'stats'), json.dumps(stats))
 
         # Set TTL if supplied
         if self.ttl:
             if self.db.ttl("{}_{}".format(key_prefix, 'stats')) == -1:
                 self.db.expire("{}_{}".format(key_prefix, 'stats'), self.ttl)
 
-        self.DATAPOINTS_SERVED_COUNT.inc(sum_dp)
+        if sum_dp > 0:
+            self.DATAPOINTS_SERVED_COUNT.inc(sum_dp)
 
         global_stats = {
-            'emittedDPs': sum_dp,
-            'duration': duration,
-            'timestamp': current_time
+            'duration': duration, # last query duration
+            'timestamp': current_time # last query timestamp
         }
+
+        if timeout:
+            global_stats["timeout_last"] = current_time
+        else:
+            global_stats["emittedDPs"] = sum_dp
 
         if not self.db.hexists("{}_{}".format(key_prefix, interval), 'first_occurrence'):
             global_stats['first_occurrence'] = current_time
@@ -189,53 +210,27 @@ class Protector(object):
             if self.db.ttl("{}_{}".format(key_prefix, interval)) == -1:
                 self.db.expire("{}_{}".format(key_prefix, interval), self.ttl)
 
-        logging.info("[{}] emittedDPs: {}".format(query.get_id(), sum_dp))
+        # Total counter, for convenience. Should match LLEN of stats list
+        self.db.hincrby("{}_{}".format(key_prefix, interval), "total_counter", 1)
+
+        if timeout:
+            self.db.hincrby("{}_{}".format(key_prefix, interval), "timeout_counter", 1)
+        else:
+            # DPS, if not timeout
+            logging.info("[{}] emittedDPs: {}".format(query.get_id(), sum_dp))
+
+            # Save dps stats
+            self.set_top_dps(key_prefix, interval, sum_dp)
+
         logging.info("[{}] duration: {}".format(query.get_id(), duration))
 
         # Save duration stats
         self.set_top_duration(key_prefix, interval, duration)
 
-        # Save dps stats
-        self.set_top_dps(key_prefix, interval, sum_dp)
-
         logging.info("[{}] stats saved".format(query.get_id()))
 
         now_time = int(round(time.time() * 1000))
         logging.debug("Time spent in save_stats: {} ms".format(now_time - current_time_milli))
-
-    def save_stats_timeout(self, query, duration):
-
-        try:
-            self.db.ping()
-        except Exception as e:
-            logging.error("Redis server connection issue: {}".format(e))
-            return
-
-        current_time = int(round(time.time()))
-        end_time = query.get_end_timestamp()
-        interval = int((end_time - query.get_start_timestamp()) / 60)
-        logging.info("[{}] start: {}, end: {}, interval: {} minutes".format(query.get_id(), int(query.get_start_timestamp()), end_time, interval))
-
-        key = "{}_{}".format(query.get_id(), interval)
-
-        stats = {
-            'duration': duration,
-            'timestamp': current_time
-        }
-
-        self.db.hmset(key, stats)
-
-        # Set TTL if supplied
-        if self.ttl:
-            if self.db.ttl(key) == -1:
-                self.db.expire(key, self.ttl)
-
-        logging.info("[{}] duration: {}".format(query.get_id(), duration))
-        logging.info("[{}] stats saved".format(query.get_id()))
-
-        # Save duration stats
-        self.set_top_duration(query.get_id(), interval, duration)
-
 
     def load_stats(self, query):
 

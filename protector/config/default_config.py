@@ -16,6 +16,7 @@ DEFAULT_CONFIG = {
     'backend_host': 'localhost',
     'backend_port': 4242,
     'safe_mode': False,
+    'timeout': 20,
     'rules': {
         'query_no_tags_filters': None,
         'query_no_aggregator': None,
