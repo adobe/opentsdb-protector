@@ -56,8 +56,11 @@ reject the query based on the last query execution time. A max frequency can be 
 
 #### Prevent queries that exceed a certain execution time (`exceed_time_limit`) ####
 
-Queries that take too long to complete can be a cause for concern. You can filter them using this rule while you investigate.\
-This is a stateful filter, the application will reject the query based on the previous query duration.
+Queries that take too long to complete can be a cause for concern. You can throttle them using this rule while you investigate.\
+This is a stateful filter, the application will reject the query based on the previous query duration.\
+Two types of throttling are supported: static and dynamic (adaptive):
+- Use static (`throttle` option, in seconds) if you want to throttle for a fixed amount of time 
+- Use dynamic (`adaptive` option, multiplier) to throttle dynamically for an amount of time equal to the last duration times the multiplier
 
 #### Blockedlist
 
