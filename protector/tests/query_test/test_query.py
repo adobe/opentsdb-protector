@@ -9,6 +9,7 @@
 #
 
 import unittest
+import json
 
 from protector.query.query import OpenTSDBQuery, OpenTSDBResponse
 import time
@@ -101,6 +102,41 @@ class TestQuery(unittest.TestCase):
         ]
         """
 
+        self.response2_ret = [
+            {
+                "metric": "this.metric",
+                "tags": {
+                    "env": "prod",
+                    "recipientDomain": "gmail.com",
+                    "channel": "email"
+                },
+                "aggregateTags": [
+                    "hostname"
+                ],
+                "dps": {
+                    "1623619500": 0,
+                    "1623619560": 0,
+                    "1623619620": 0
+                }
+            },
+            {
+                "metric": "this.metric",
+                "tags": {
+                    "env": "prod",
+                    "recipientDomain": "gmail.com",
+                    "channel": "email"
+                },
+                "aggregateTags": [
+                    "hostname"
+                ],
+                "dps": {
+                    "1623619500": 0,
+                    "1623619560": 0,
+                    "1623619620": 0
+                }
+            }    
+        ]
+
         self.stats2 = {
             "avgAggregationTime": 0.806912,
             "avgHBaseTime": 3.874463,
@@ -170,6 +206,14 @@ class TestQuery(unittest.TestCase):
     def test_ok_normal_response(self):
 
         r = OpenTSDBResponse(self.response2)
+
+        # expected response with summary stripped
+        p = json.dumps(self.response2_ret, sort_keys=True)
+
+        # test that response summary is correctly stripped
+        self.assertEqual(p, r.to_json(True))
+
+        # test that stats are properly collected
         self.assertDictEqual(self.stats2, r.get_stats())
 
     def test_missing_stats_response(self):

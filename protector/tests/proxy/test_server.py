@@ -212,4 +212,4 @@ class TestRequests(unittest.TestCase):
         # Check valid response code
         self.assertEqual(response.code, 200)
         self.assertEqual(response.msg, "OK")
-        self.assertEqual(response.read(), "{}")
+        self.assertEqual(response.read(), "[]")

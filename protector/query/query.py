@@ -154,7 +154,9 @@ class OpenTSDBResponse(object):
 
             summary = item.get("statsSummary", [])
             if not summary:
-                #raise Exception("OpenTSDB query stats not present in response!")
+                # ! dropping summary from the response
+                # as Grafana cannot handle it !
+                self.r.append(item)
                 continue
 
             filtered = {}
@@ -165,10 +167,9 @@ class OpenTSDBResponse(object):
 
             self.stats = filtered
 
-        self.r = rlist
 
     def get_stats(self):
         return self.stats
 
-    def to_json(self):
-        return json.dumps(self.r)
+    def to_json(self, sort_keys=False):
+        return json.dumps(self.r, sort_keys=sort_keys)

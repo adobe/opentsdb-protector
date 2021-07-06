@@ -233,13 +233,17 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         :param payload: JSON
         :param encoding: Content Encoding
         """
+        r = ""
         try:
             resp = OpenTSDBResponse(self.decode_content_body(payload, encoding))
+            r = resp.to_json()
             self.protector.save_stats(self.tsdb_query, resp, duration)
         except Exception as e:
             err = "Skip: {}".format(e)
             logging.debug(err)
             logging.error("{}".format(traceback.format_exc()))
+
+        return self.encode_content_body(r, encoding)
 
     def _process_bad_request(self, payload, encoding):
         """
@@ -278,7 +282,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         if method == "POST":
             if response.status == httplib.OK:
                 # Process the payload
-                self._process_response(body, response.getheader('content-encoding'), duration)
+                r = self._process_response(body, response.getheader('content-encoding'), duration)
+                if r:
+                    body = r
             if response.status == httplib.BAD_REQUEST:
                 body = self._process_bad_request(body, response.getheader('content-encoding'))
 
