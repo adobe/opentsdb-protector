@@ -16,7 +16,7 @@ import datetime
 
 class RuleChecker(Rule):
     def __init__(self, conf_days):
-        self.min_start_date = datetime.datetime.now() - datetime.timedelta(days=conf_days)
+        self.conf_days = conf_days
 
     @staticmethod
     def description():
@@ -32,11 +32,12 @@ class RuleChecker(Rule):
         :param query OpenTSDBQuery
         """
         a = query.get_start_timestamp()
+        min_start_date = datetime.datetime.now() - datetime.timedelta(days=self.conf_days)
 
         jstart = datetime.datetime.fromtimestamp(float(query.get_start_timestamp()))
 
-        if jstart >= self.min_start_date:
+        if jstart >= min_start_date:
             return Ok(True)
 
         return Err(("Querying for data before {} is prohibited. "
-                    "Your query start date is {}, which is before that.").format(self.min_start_date.strftime("%Y-%m-%d"), jstart.strftime("%Y-%m-%d")))
+                    "Your query start date is {}, which is before that.").format(min_start_date.strftime("%Y-%m-%d"), jstart.strftime("%Y-%m-%d")))
