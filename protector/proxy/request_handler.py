@@ -20,7 +20,8 @@ from BaseHTTPServer import BaseHTTPRequestHandler
 from StringIO import StringIO
 import traceback
 
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Gauge
+import datetime as dt
 
 from protector.proxy.http_request import HTTPRequest
 from protector.query.query import OpenTSDBQuery, OpenTSDBResponse
@@ -31,6 +32,12 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
     protector = None
     backend_address = None
     timeout = None
+    
+    # Prometheus metrics based on query start time
+    TSDB_QUERY_START_LESS_1D = Gauge('tsdb_query_start_less_1d', 'OpenTSDB Queries with start date in the last 24 hours')
+    TSDB_QUERY_START_LESS_1M = Gauge('tsdb_query_start_less_1m', 'OpenTSDB Queries with start date in the last month')
+    TSDB_QUERY_START_LESS_3M = Gauge('tsdb_query_start_less_3m', 'OpenTSDB Queries with start date in the last 3 months')
+    TSDB_QUERY_START_MORE_3M = Gauge('tsdb_query_start_more_3m', 'OpenTSDB Queries with start date older than 3 months ago')
 
     def __init__(self, *args, **kwargs):
 
@@ -144,6 +151,21 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             self.tsdb_query = OpenTSDBQuery(post_data)
             self.headers['X-Protector'] = self.tsdb_query.get_id()
+
+            # Increment metrics based on query start time
+            start_time = dt.datetime.fromtimestamp(self.tsdb_query.get_start_timestamp())
+            now_time = dt.datetime.fromtimestamp(int(round(time.time())))
+            delta_time = now_time - start_time
+            
+            if delta_time.days >= 0:
+                if delta_time.days < 1:
+                    self.TSDB_QUERY_START_LESS_1D.inc()
+                elif delta_time.days < 30:
+                    self.TSDB_QUERY_START_LESS_1M.inc()
+                elif delta_time.days < 90:
+                    self.TSDB_QUERY_START_LESS_3M.inc()
+                elif delta_time.days >= 90:
+                    self.TSDB_QUERY_START_MORE_3M.inc()
 
             # Check the payload against the Protector rule set
             result = self.protector.check(self.tsdb_query)
