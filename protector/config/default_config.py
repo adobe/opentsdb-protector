@@ -43,4 +43,9 @@ DEFAULT_CONFIG = {
     'c': None,
     'verbose': 0,
     'v': 0,
+    'log' : {
+        'rotate': True,
+        'maxBytes': 256000000,
+        'backupCount': 2
+    }
 }
