@@ -36,3 +36,7 @@ blockedlist:
 # Queries matching these patterns will skip the filters (if not rejected by the blockedlist!)
 allowedlist:
   - test\.e2e\.
+log:
+  rotate: True
+  maxBytes: 500000000
+  backupCount: 2

@@ -11,6 +11,8 @@
 #
 
 import logging
+import logging.handlers as handlers
+
 import sys
 
 from protector.proxy import server
@@ -42,7 +44,11 @@ class ProtectorDaemon(object):
             logging.info("Starting in foreground...")
 
     def configure_logging(self):
-        logging.getLogger('').handlers = []
+        if self.config.log["rotate"]:
+            logHandler = handlers.RotatingFileHandler(self.config.logfile, maxBytes=self.config.log["maxBytes"], backupCount=self.config.log["backupCount"])
+            logging.getLogger('').handlers = [logHandler]
+        else:
+            logging.getLogger('').handlers = []
         logging_config = {
             "level": logging.DEBUG,
             "format": '%(asctime)s [%(levelname)s] %(message)s'
