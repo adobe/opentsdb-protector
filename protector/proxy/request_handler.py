@@ -9,15 +9,15 @@
 #
 
 import gzip
-import httplib
+import http.client
 import json
 import logging
 import socket
 import time
 import zlib
 import re
-from BaseHTTPServer import BaseHTTPRequestHandler
-from StringIO import StringIO
+from http.server import BaseHTTPRequestHandler
+from io import BytesIO
 import traceback
 
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
@@ -80,13 +80,13 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         xff = '-'
         xgo = '-'
         ua = '-'
-        try:
-            xff = self.headers.getheader('X-Forwarded-For', '-')
-            xgo = self.headers.getheader('X-Grafana-Org-Id', '-')
-            ua = self.headers.getheader('User-Agent', '-')
-        except AttributeError as e:
-            requestline = getattr(self, 'raw_requestline', '-')
-            logging.warning("Malformed/missing request header. Requestline: %s" % requestline)
+        headers = dict(self.headers)
+        if 'X-Forwarded-For' in headers:
+            xff = headers['X-Forwarded-For']
+        if 'X-Grafana-Org-Id' in headers:
+            xgo = headers['X-Grafana-Org-Id']
+        if 'User-Agent' in headers:
+            ua = headers['User-Agent']
 
         logging.info("%s - - [%s] %s [X-Forwarded-For: %s, X-Grafana-Org-Id: %s, User-Agent: %s]" %
                         (self.client_address[0], self.log_date_time_string(), format % args, xff, xgo, ua))
@@ -99,7 +99,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             data = generate_latest()
 
-            self.send_response(httplib.OK)
+            self.send_response(http.client.OK)
             self.send_header("Content-Type", CONTENT_TYPE_LATEST)
             self.send_header("Content-Length", str(len(data)))
             self.send_header('Connection', 'close')
@@ -110,7 +110,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             data = self.protector.get_top(top.group(1))
 
-            self.send_response(httplib.OK)
+            self.send_response(http.client.OK)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
             self.send_header('Connection', 'close')
@@ -136,7 +136,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         # Deny put requests
         if self.path == "/api/put":
             logging.warning("OpenTSDBQuery blocked. Reason: %s", "/api/put not allowed")
-            self.send_error(httplib.FORBIDDEN, "/api/put not allowed")
+            self.send_error(http.client.FORBIDDEN, "/api/put not allowed")
             return
 
         # Process query requests
@@ -152,12 +152,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
                 if not self.protector.safe_mode:
                     logging.warning("OpenTSDBQuery blocked: %s. Reason: %s", self.tsdb_query.get_id(), result.value["msg"])
-                    self.send_error(httplib.FORBIDDEN, result.value["msg"])
+                    self.send_error(http.client.FORBIDDEN, result.value["msg"])
                     return
 
             post_data = self.tsdb_query.to_json()
-
-            self.headers['Content-Length'] = str(len(post_data))
 
         status = self._handle_request(self.scheme, self.backend_netloc, self.path, self.headers, body=post_data, method="POST")
 
@@ -183,7 +181,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         if message:
             # Grafana style
             j = {'message': message, 'error': message}
-            self.wfile.write(json.dumps(j))
+            self.wfile.write(json.dumps(j).encode())
 
     def _handle_request(self, scheme, netloc, path, headers, body=None, method="GET"):
         """
@@ -193,7 +191,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         startTime = time.time()
 
         try:
-            response = self.http_request.request(backend_url, self.timeout, method=method, body=body, headers=dict(headers))
+            headers=dict(headers)
+            if body is not None:
+                headers['Content-Length'] = str(len(body))
+            response = self.http_request.request(backend_url, self.timeout, method=method, body=body, headers=headers)
 
             respTime = time.time()
             duration = respTime - startTime
@@ -203,7 +204,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             return response.status
 
-        except socket.timeout, e:
+        except socket.timeout as e:
 
             respTime = time.time()
             duration = respTime - startTime
@@ -211,10 +212,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             if method == "POST":
                 self.protector.save_stats(self.tsdb_query, None, duration, True)
 
-            self.protector.TSDB_REQUEST_LATENCY.labels(httplib.GATEWAY_TIMEOUT, path, method).observe(duration)
-            self.send_error(httplib.GATEWAY_TIMEOUT, "Query timed out. Configured timeout: {}s".format(self.timeout))
+            self.protector.TSDB_REQUEST_LATENCY.labels(http.client.GATEWAY_TIMEOUT, path, method).observe(duration)
+            self.send_error(http.client.GATEWAY_TIMEOUT, "Query timed out. Configured timeout: {}s".format(self.timeout))
 
-            return httplib.GATEWAY_TIMEOUT
+            return http.client.GATEWAY_TIMEOUT
 
         except Exception as e:
 
@@ -223,10 +224,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             err = "Invalid response from backend: '{}'".format(e)
             logging.debug(err)
-            self.protector.TSDB_REQUEST_LATENCY.labels(httplib.BAD_GATEWAY, path, method).observe(duration)
-            self.send_error(httplib.BAD_GATEWAY, err)
+            self.protector.TSDB_REQUEST_LATENCY.labels(http.client.BAD_GATEWAY, path, method).observe(duration)
+            self.send_error(http.client.BAD_GATEWAY, err)
 
-            return httplib.BAD_GATEWAY
+            return http.client.BAD_GATEWAY
 
     def _process_response(self, payload, encoding, duration):
         """
@@ -280,12 +281,12 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         body = response.read()
 
         if method == "POST":
-            if response.status == httplib.OK:
+            if response.status == http.client.OK:
                 # Process the payload
                 r = self._process_response(body, response.getheader('content-encoding'), duration)
                 if r:
                     body = r
-            if response.status == httplib.BAD_REQUEST:
+            if response.status == http.client.BAD_REQUEST:
                 body = self._process_bad_request(body, response.getheader('content-encoding'))
 
         self.send_header('Content-Length', str(len(body)))
@@ -315,9 +316,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         if encoding == 'identity':
             return text
         if encoding in ('gzip', 'x-gzip'):
-            io = StringIO()
+            io = BytesIO()
             with gzip.GzipFile(fileobj=io, mode='wb') as f:
-                f.write(text)
+                f.write(text.encode('utf-8'))
             return io.getvalue()
         if encoding == 'deflate':
             return zlib.compress(text)
@@ -330,7 +331,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         if encoding == 'identity':
             return data
         if encoding in ('gzip', 'x-gzip'):
-            io = StringIO(data)
+            io = BytesIO(data)
             with gzip.GzipFile(fileobj=io) as f:
                 return f.read()
         if encoding == 'deflate':

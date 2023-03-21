@@ -232,10 +232,10 @@ class TestProtector(unittest.TestCase):
 
         p.safe_mode = False
 
-        with self.assertRaisesRegexp(Exception, 'Invalid OpenTSDB query'):
+        with self.assertRaisesRegex(Exception, 'Invalid OpenTSDB query'):
             p.check(OpenTSDBQuery('{}'))
 
-        with self.assertRaisesRegexp(Exception, 'Invalid OpenTSDB query'):
+        with self.assertRaisesRegex(Exception, 'Invalid OpenTSDB query'):
             p.check(OpenTSDBQuery('{"start": ""}'))
 
     def test_save_stats_timeout(self):
