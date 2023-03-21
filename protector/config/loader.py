@@ -39,6 +39,16 @@ def load_config():
     # Parameters from commandline take precedence over all others
     config = overwrite_config(config, cli_config)
 
+    if "log" not in config:
+        config.update({
+            "log": default_config.DEFAULT_CONFIG["log"]
+        })
+    elif "log" in config and config["log"]["rotate"]:
+        if "maxBytes" not in config["log"] or "backupCount" not in config["log"]:
+            config.update({
+                "log": default_config.DEFAULT_CONFIG["log"]
+            })
+
     # Set verbosity level
     if 'verbose' in config:
         if config['verbose'] == 1:
