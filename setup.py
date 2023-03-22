@@ -32,7 +32,8 @@ requires = [
     "result==0.3.0",
     "wheel",
     "prometheus_client==0.7.1",
-    "redis==3.2.1"
+    "redis==3.2.1",
+    "wheel==0.33.4"
 ]
 
 test_requires = [
@@ -53,9 +54,9 @@ setup(name='opentsdb-protector',
           'License :: OSI Approved :: BSD License',
           'Topic :: Utilities',
           "Programming Language :: Python",
-          "Programming Language :: Python :: 2",
-          "Programming Language :: Python :: 2.6",
-          "Programming Language :: Python :: 2.7",
+          "Programming Language :: Python :: 3",
+          "Programming Language :: Python :: 3.6",
+          "Programming Language :: Python :: 3.7",
           "Programming Language :: Python :: Implementation :: PyPy",
       ],
       keywords='opentsdb query proxy circuit-breaker',
