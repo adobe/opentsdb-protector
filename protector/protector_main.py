@@ -60,6 +60,9 @@ class Protector(object):
         self.DATAPOINTS_SERVED_COUNT = Counter('datapoints_served_count', 'datapoints served count')
         self.TSDB_REQUEST_LATENCY = Histogram('tsdb_request_latency_seconds', 'OpenTSDB Requests latency histogram', ['http_code', 'path', 'method'])
 
+        # Prometheus histogram based on query start time age in days
+        self.TSDB_REQUEST_INTERVAL = Histogram('tsdb_request_interval', 'OpenTSDB Requests interval based on query start time', ['interval'],buckets=(1,30,90))
+
     def check(self, query):
 
         logging.debug("Checking OpenTSDBQuery: {}".format(query.get_id()))

@@ -20,7 +20,7 @@ from BaseHTTPServer import BaseHTTPRequestHandler
 from StringIO import StringIO
 import traceback
 
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Gauge
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 import datetime as dt
 
 from protector.proxy.http_request import HTTPRequest
@@ -33,12 +33,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
     backend_address = None
     timeout = None
     
-    # Prometheus metrics based on query start time
-    TSDB_QUERY_START_LESS_1D = Gauge('tsdb_query_start_less_1d', 'OpenTSDB Queries with start date in the last 24 hours')
-    TSDB_QUERY_START_LESS_1M = Gauge('tsdb_query_start_less_1m', 'OpenTSDB Queries with start date in the last month')
-    TSDB_QUERY_START_LESS_3M = Gauge('tsdb_query_start_less_3m', 'OpenTSDB Queries with start date in the last 3 months')
-    TSDB_QUERY_START_MORE_3M = Gauge('tsdb_query_start_more_3m', 'OpenTSDB Queries with start date older than 3 months ago')
-
     def __init__(self, *args, **kwargs):
 
         self.http_request = HTTPRequest()
@@ -157,15 +151,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             now_time = dt.datetime.fromtimestamp(int(round(time.time())))
             delta_time = now_time - start_time
             
-            if delta_time.days >= 0:
-                if delta_time.days < 1:
-                    self.TSDB_QUERY_START_LESS_1D.inc()
-                elif delta_time.days < 30:
-                    self.TSDB_QUERY_START_LESS_1M.inc()
-                elif delta_time.days < 90:
-                    self.TSDB_QUERY_START_LESS_3M.inc()
-                elif delta_time.days >= 90:
-                    self.TSDB_QUERY_START_MORE_3M.inc()
+            self.protector.TSDB_REQUEST_INTERVAL.labels("days").observe(int(delta_time.days))
 
             # Check the payload against the Protector rule set
             result = self.protector.check(self.tsdb_query)
