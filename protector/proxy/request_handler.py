@@ -21,6 +21,7 @@ from StringIO import StringIO
 import traceback
 
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+import datetime as dt
 
 from protector.proxy.http_request import HTTPRequest
 from protector.query.query import OpenTSDBQuery, OpenTSDBResponse
@@ -31,7 +32,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
     protector = None
     backend_address = None
     timeout = None
-
+    
     def __init__(self, *args, **kwargs):
 
         self.http_request = HTTPRequest()
@@ -144,6 +145,13 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             self.tsdb_query = OpenTSDBQuery(post_data)
             self.headers['X-Protector'] = self.tsdb_query.get_id()
+
+            # Increment metrics based on query start time
+            start_time = dt.datetime.fromtimestamp(self.tsdb_query.get_start_timestamp())
+            now_time = dt.datetime.fromtimestamp(int(round(time.time())))
+            delta_time = now_time - start_time
+            
+            self.protector.TSDB_REQUEST_INTERVAL.labels("days").observe(int(delta_time.days))
 
             # Check the payload against the Protector rule set
             result = self.protector.check(self.tsdb_query)
