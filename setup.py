@@ -30,10 +30,11 @@ requires = [
     "python-dateutil",
     "PyYAML>=4.2b1",
     "result==0.3.0",
-    "wheel",
     "prometheus_client==0.7.1",
     "redis==3.2.1",
-    "wheel==0.33.4"
+    "wheel==0.33.4",
+    "setuptools==41.0.1",
+    "typing-extensions==3.10.0.2"
 ]
 
 test_requires = [
