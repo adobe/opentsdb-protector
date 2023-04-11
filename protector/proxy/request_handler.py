@@ -49,7 +49,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.wfile = None
         self.close_connection = 0
 
-        BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
+        try:
+            BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
+        except ValueError:
+            pass
+
 
     def log_error(self, log_format, *args):
 
