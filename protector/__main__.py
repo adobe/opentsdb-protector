@@ -85,8 +85,8 @@ def show_version():
     Show program version an quit
     :return:
     """
-    from version import __version__
-    print("{} {}".format(__package__, __version__))
+    import pkg_resources
+    print("{} {}".format(__package__, pkg_resources.get_distribution(__title__).version))
     sys.exit(0)
 
 

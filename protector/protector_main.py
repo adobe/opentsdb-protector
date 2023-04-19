@@ -48,7 +48,8 @@ class Protector(object):
         self.db = redis.Redis(
             host=db_config['redis']['host'],
             port=db_config['redis']['port'],
-            password=db_config['redis']['password'])
+            password=db_config['redis']['password'],
+            decode_responses=True)
 
         self.REQUESTS_COUNT = Counter('requests_total', 'Total number of requests', ['method', 'path', 'return_code'])
         self.REQUESTS_BLOCKED = Counter('requests_blocked', 'Total number of blocked requests. Tags: safe mode, matched rule', ['safe_mode', 'rule'])
@@ -278,4 +279,4 @@ class Protector(object):
             data[hour] = sc
             hour = hour - 1
 
-        return json.dumps(data)
+        return json.dumps(data).encode()

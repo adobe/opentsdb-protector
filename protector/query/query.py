@@ -124,7 +124,7 @@ class OpenTSDBQuery(object):
         for unused_key in ('start', 'end', 'timezone', 'options', 'padding'):
             temp.pop(unused_key, None)
         
-        return hashlib.md5(json.dumps(temp)).hexdigest()
+        return hashlib.md5(json.dumps(temp).encode('utf-8')).hexdigest()
 
     def set_stats(self, stats):
         self.stats = stats

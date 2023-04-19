@@ -8,8 +8,8 @@
 #  written permission of Adobe.
 #
 
-from httplib import HTTPSConnection, HTTPConnection, IncompleteRead
-import urlparse
+from http.client import HTTPSConnection, HTTPConnection, IncompleteRead
+from urllib.parse import urlparse, urlsplit
 import threading
 import socket
 import logging
@@ -28,7 +28,7 @@ class HTTPRequest(object):
         if headers is None:
             headers = dict()
 
-        parsed = urlparse.urlsplit(url)
+        parsed = urlsplit(url)
         origin = (parsed.scheme, parsed.netloc)
 
         uri = parsed.path
@@ -40,10 +40,10 @@ class HTTPRequest(object):
                 conn = self.create_conn(parsed, origin, timeout)
                 conn.request(method, uri, body=body, headers=headers)
                 return conn.getresponse()
-            except socket.timeout, e:
+            except socket.timeout as e:
                 logging.warning("HTTPRequest socket timeout: %s", str(e))
                 raise e
-            except socket.error, e:
+            except socket.error as e:
                 logging.warning("HTTPRequest socket error: %s", str(e))
                 raise e
             except IncompleteRead as e:

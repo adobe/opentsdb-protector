@@ -14,7 +14,7 @@ from mock import MagicMock, patch
 from result import Ok
 import time
 import threading
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from protector.proxy import request_handler
 from protector.proxy import server
@@ -47,8 +47,8 @@ class TestRequests(unittest.TestCase):
     def setUp(self):
         self.host = "127.0.0.1"
         self.port = 8888
-        self.backend_host = "http://www.example.com"
-        self.backend_port = 1234
+        self.backend_host = "127.0.0.1"
+        self.backend_port = 4242
 
     def start_server(self):
         request_handler.ProxyRequestHandler.protocol_version = "HTTP/1.1"
@@ -83,7 +83,7 @@ class TestRequests(unittest.TestCase):
         backend_url = url_string.format(self.backend_host, self.backend_port)
 
         # Do proxy request
-        response = urllib2.urlopen(frontend_url)
+        response = urllib.request.urlopen(frontend_url)
 
         # Check if we did a single request to the backend
         self.assertTrue(mock_http_request_class.request.called)
@@ -96,7 +96,7 @@ class TestRequests(unittest.TestCase):
         # Check valid response code
         self.assertEqual(response.code, 200)
         self.assertEqual(response.msg, "OK")
-        self.assertEqual(response.read(), "{}")
+        self.assertEqual(response.read().decode(), "{}")
 
     @patch('protector.proxy.request_handler.HTTPRequest')
     def test_proxy_error_response(self, mock_http_request):
@@ -110,8 +110,8 @@ class TestRequests(unittest.TestCase):
         backend_url = url_string.format(self.backend_host, self.backend_port)
 
         # An internal server error will raise an exception
-        with self.assertRaises(urllib2.HTTPError):
-            urllib2.urlopen(frontend_url)
+        with self.assertRaises(urllib.error.HTTPError):
+            urllib.request.urlopen(frontend_url)
 
         # Check if we did a single request to the backend
         self.assertTrue(mock_http_request_class.request.called)
@@ -131,8 +131,8 @@ class TestRequests(unittest.TestCase):
         backend_url = url_string.format(self.backend_host, self.backend_port)
 
         # An internal server error will raise an exception
-        with self.assertRaises(urllib2.HTTPError):
-            urllib2.urlopen(frontend_url)
+        with self.assertRaises(urllib.error.HTTPError):
+            urllib.request.urlopen(frontend_url)
 
         # Check if we did a single request to the backend
         self.assertTrue(mock_http_request_class.request.called)
@@ -151,8 +151,8 @@ class TestRequests(unittest.TestCase):
         frontend_url = url_string.format(self.host, self.port)
         backend_url = url_string.format(self.backend_host, self.backend_port)
 
-        with self.assertRaises(urllib2.HTTPError):
-            urllib2.urlopen(frontend_url)
+        with self.assertRaises(urllib.error.HTTPError):
+            urllib.request.urlopen(frontend_url)
 
         # Check if we did a single request to the backend
         self.assertTrue(mock_http_request_class.request.called)
@@ -183,18 +183,18 @@ class TestRequests(unittest.TestCase):
             }
 
         rq = q.copy()
-        rq["showQuery"] = True
         rq["showSummary"] = True
+        rq["showQuery"] = True
 
-        data = json.dumps(q)
-        dataq = json.dumps(rq)
+        data = json.dumps(q).encode()
+        dataq = json.dumps(rq).encode()
 
         frontend_url = url_string.format(self.host, self.port)
         backend_url = url_string.format(self.backend_host, self.backend_port)
 
         # Do proxy request
-        req = urllib2.Request(frontend_url, data, {'Content-Type': 'application/json'})
-        response = urllib2.urlopen(req)
+        req = urllib.request.Request(frontend_url, data, {'Content-Type': 'application/json'})
+        response = urllib.request.urlopen(req)
 
         # Check if we did a single request to the backend
         self.assertTrue(mock_http_request_class.request.called)
@@ -207,9 +207,9 @@ class TestRequests(unittest.TestCase):
         args, kwargs = mock_http_request_class.request.call_args
         self.assertEqual("POST", kwargs.get('method'))
 
-        self.assertEqual(dataq, kwargs.get('body'))
+        self.assertEqual(dataq.decode(), kwargs.get('body'))
 
         # Check valid response code
         self.assertEqual(response.code, 200)
         self.assertEqual(response.msg, "OK")
-        self.assertEqual(response.read(), "[]")
+        self.assertEqual(response.read().decode(), "[]")
