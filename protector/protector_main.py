@@ -64,12 +64,16 @@ class Protector(object):
         # Prometheus histogram based on query start time age in days
         self.TSDB_REQUEST_INTERVAL = Histogram('tsdb_request_interval', 'OpenTSDB Requests interval based on query start time', ['interval'],buckets=(1,30,90))
 
+        self.REQUESTS_METRICS = Counter('requests_metrics', 'Total number of requests', ['metric'])
+
     def check(self, query):
 
         logging.debug("Checking OpenTSDBQuery: {}".format(query.get_id()))
 
         if query:
             qs_names = query.get_metric_names()
+            for qn in qs_names:
+                self.REQUESTS_METRICS.labels(qn).inc()    
 
             if self.blockedlist:
                 for pattern in self.blockedlist:
